@@ -32,7 +32,9 @@
         .manual-override { box-shadow: 0 0 0 2px #ef4444; }
         .main-table-weekend { background-color: #d1d5db; }
         .office-cell { background-color: #bfdbfe; color: #1e40af; }
+        .office-training-cell { background-color: #c7d2fe; color: #1e40af; }
         .home-cell { background-color: #a7f3d0; color: #065f46; }
+        .home-training-cell { background-color: #d9f99d; color: #3f6212; }
         .leave-cell { background-color: #fee2e2; color: #991b1b; }
         .request-cell { background-color: #fecaca; color: #b91c1c; font-weight: bold; }
         .inactive-cell { background-color: #e5e7eb; }
@@ -414,15 +416,21 @@
         const loadingSpinner = document.getElementById('loading-spinner');
         
         const STATUSES = {
-            'O':   { label: 'Ofis (O)',          short: 'O',    class: 'office-cell',  color: '#bfdbfe' }, 
-            'E':   { label: 'Ev (E)',            short: 'E',    class: 'home-cell',    color: '#a7f3d0' },
-            'i':   { label: 'İzin (İ)',          short: 'İ',    class: 'leave-cell',   color: '#fee2e2' }, 
-            'iok': { label: 'İzin Onaylı (i✓)',  short: 'i✓',   class: 'leave-cell',   color: '#fee2e2' },
-            'SZ':  { label: 'Serbest Zaman (SZ)',short: 'SZ',   class: 'leave-cell',   color: '#fee2e2' }, 
-            'T':   { label: 'Tatil',             short: 'T',    class: 'holiday-cell', color: '#fef9c3' },
-            'izt': { label: 'İzin Talebi',       short: 'İz.T', class: 'request-cell', color: '#fecaca' },
-            'szt': { label: 'Sz.Talebi',         short: 'Sz.T', class: 'request-cell', color: '#fecaca' },
+            'O':    { label: 'Ofis (O)',             short: 'O',      class: 'office-cell',  color: '#bfdbfe' },
+            'EgiO': { label: 'Eğitim Ofis (Eği.O)',  short: 'Eği.O',  class: 'office-training-cell',  color: '#c7d2fe' },
+            'E':    { label: 'Ev (E)',               short: 'E',      class: 'home-cell',    color: '#a7f3d0' },
+            'EgiE': { label: 'Eğitim Ev (Eği.E)',    short: 'Eği.E',  class: 'home-training-cell',    color: '#d9f99d' },
+            'i':    { label: 'İzin (İ)',             short: 'İ',      class: 'leave-cell',   color: '#fee2e2' },
+            'iok':  { label: 'İzin Onaylı (i✓)',     short: 'i✓',     class: 'leave-cell',   color: '#fee2e2' },
+            'SZ':   { label: 'Serbest Zaman (SZ)',   short: 'SZ',     class: 'leave-cell',   color: '#fee2e2' },
+            'T':    { label: 'Tatil',                short: 'T',      class: 'holiday-cell', color: '#fef9c3' },
+            'izt':  { label: 'İzin Talebi',          short: 'İz.T',   class: 'request-cell', color: '#fecaca' },
+            'szt':  { label: 'Sz.Talebi',            short: 'Sz.T',   class: 'request-cell', color: '#fecaca' },
         };
+
+        const OFFICE_LIKE_STATUSES = ['O', 'EgiO'];
+        const HOME_LIKE_STATUSES = ['E', 'EgiE'];
+        const WORK_LIKE_STATUSES = [...OFFICE_LIKE_STATUSES, ...HOME_LIKE_STATUSES];
         const LEAVE_STATUSES = ['i', 'iok', 'SZ'];
         const REQUEST_STATUSES = ['izt', 'szt'];
         const MONTH_NAMES = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
@@ -912,7 +920,7 @@
             }});
 
             if (isPublished) {
-                const isAutoAssignedWorkDay = (dayData.status === 'E' || dayData.status === 'O') && !dayData.manual;
+                const isAutoAssignedWorkDay = (WORK_LIKE_STATUSES.includes(dayData.status)) && !dayData.manual;
 
                 if (isLocked) { // Always allow unlocking
                     items.push({ label: 'Sabitlemeyi Kaldır', action: () => {
@@ -1341,8 +1349,8 @@
                     let workCount = 0;
                     activePeopleToday.forEach(person => {
                         const status = scheduleData[day]?.[person.id]?.status;
-                        if (status === 'O') officeCount++;
-                        if (status === 'E' || status === 'O') workCount++;
+                        if (OFFICE_LIKE_STATUSES.includes(status)) officeCount++;
+                        if (WORK_LIKE_STATUSES.includes(status)) workCount++;
                     });
                     const ratio = workCount > 0 ? Math.round((officeCount / workCount) * 100) : 0;
                     cellContent = `${ratio}%`;
@@ -1369,8 +1377,8 @@
                     const oncallPersonStatus = oncallPerson ? (dayData[oncallPerson.id]?.status) : null;
                     const text = oncallPerson ? oncallPerson.name.substring(0, 3).toUpperCase() : '-';
                     
-                    const isWorkingDay = getActivePeopleForDate(year, month, day).some(p => dayData[p.id]?.status === 'E' || dayData[p.id]?.status === 'O');
-                    const isError = (isWorkingDay && oncallPerson && oncallPersonStatus !== 'E');
+                    const isWorkingDay = getActivePeopleForDate(year, month, day).some(p => WORK_LIKE_STATUSES.includes(dayData[p.id]?.status));
+                    const isError = (isWorkingDay && oncallPerson && !HOME_LIKE_STATUSES.includes(oncallPersonStatus));
                     if (isError) tdClasses += ' bg-red-200';
                     
                     cellContent = `<div class="p-2 rounded-md font-bold text-blue-800 cursor-pointer ${oncallData.manual ? 'manual-override' : ''}" data-type="oncall" data-date="${year}-${month}-${day}">${text}</div>`;
@@ -1392,7 +1400,7 @@
                     const deployPersonStatus = deployPerson ? (dayData[deployPerson.id]?.status) : null;
                     const text = deployPerson ? deployPerson.name.substring(0, 3).toUpperCase() : '-';
 
-                    if (deployPerson && deployPersonStatus === 'O') tdClasses += ' bg-red-200';
+                    if (deployPerson && OFFICE_LIKE_STATUSES.includes(deployPersonStatus)) tdClasses += ' bg-red-200';
                     
                     cellContent = `<div class="p-2 rounded-md font-bold text-purple-800 cursor-pointer ${deployData.manual ? 'manual-override' : ''}" data-type="deploy" data-date="${year}-${month}-${day}">${text}</div>`;
                 }
@@ -1456,9 +1464,9 @@
                 if (!getActivePeopleForDate(year, month, day).some(p => p.id === personId)) continue;
 
                 const pStatus = schedule[day]?.[personId]?.status;
-                if (pStatus && !LEAVE_STATUSES.includes(pStatus) && !REQUEST_STATUSES.includes(pStatus) && pStatus !== 'T') {
+                if (pStatus && WORK_LIKE_STATUSES.includes(pStatus)) {
                     stats.workDays++;
-                    if (pStatus === 'O') {
+                    if (OFFICE_LIKE_STATUSES.includes(pStatus)) {
                         stats.officeDays++;
                     }
                 }
@@ -1522,7 +1530,7 @@
                     continue;
                 }
                 
-                if (personStatus === 'E') {
+                if (HOME_LIKE_STATUSES.includes(personStatus)) {
                     consecutiveHome++;
                 } else {
                     break;
@@ -1555,11 +1563,11 @@
                 
                 const personStatus = getStatusOnDate(person.id, d_year, d_month, d_day, schedule);
 
-                if (personStatus && !LEAVE_STATUSES.includes(personStatus) && !REQUEST_STATUSES.includes(personStatus) && personStatus !== 'T') {
+                if (personStatus && WORK_LIKE_STATUSES.includes(personStatus)) {
                     weekWorkDays++;
-                    if (personStatus === 'E') {
+                    if (HOME_LIKE_STATUSES.includes(personStatus)) {
                         weekHomeDays++;
-                    } else if (personStatus === 'O') {
+                    } else if (OFFICE_LIKE_STATUSES.includes(personStatus)) {
                         weekOfficeDays++;
                     }
                 }
@@ -1679,7 +1687,7 @@
                                 
                                 const status = getStatusOnDate(person.id, year, month, d, plan);
                                 if (!LEAVE_STATUSES.includes(status) && !REQUEST_STATUSES.includes(status) && status !== 'T') {
-                                    if (d < day && status === 'O') {
+                                    if (d < day && OFFICE_LIKE_STATUSES.includes(status)) {
                                         officeDaysSoFar++;
                                     }
                                     if(d >= day && !status) {
@@ -1703,7 +1711,7 @@
                 
                 const workingTodayCount = activePeople.filter(p => !LEAVE_STATUSES.includes(getStatusOnDate(p.id, year, month, day, plan)) && !REQUEST_STATUSES.includes(getStatusOnDate(p.id, year, month, day, plan))).length;
                 const dailyRequiredOffice = Math.ceil(workingTodayCount * 0.5);
-                const manualOfficeCount = activePeople.filter(p => !assignablePeople.some(ap => ap.id === p.id) && getStatusOnDate(p.id, year, month, day, plan) === 'O').length;
+                const manualOfficeCount = activePeople.filter(p => !assignablePeople.some(ap => ap.id === p.id) && OFFICE_LIKE_STATUSES.includes(getStatusOnDate(p.id, year, month, day, plan))).length;
                 let currentOfficeCount = Object.values(assignments).filter(s => s === 'O').length + manualOfficeCount;
 
                 if (flexiblePeople.length > 0) {
@@ -1768,7 +1776,7 @@
                     const status = getStatusOnDate(person.id, year, month, day, schedule);
 
                     if (date.getDay() % 6 !== 0 && !LEAVE_STATUSES.includes(status) && !REQUEST_STATUSES.includes(status) && status !== 'T') {
-                        if (status === 'E') {
+                        if (HOME_LIKE_STATUSES.includes(status)) {
                             consecutiveHome++;
                         } else { 
                             if (consecutiveHome === 1) groupingScore -= 5;
@@ -1852,7 +1860,7 @@
                 const oncallData = plan[day].oncall || {};
                 if (!oncallData.manual) {
                     const activePeopleToday = getActivePeopleForDate(year, month, day);
-                    const homeWorkers = activePeopleToday.filter(p => plan[day]?.[p.id]?.status === 'E');
+                    const homeWorkers = activePeopleToday.filter(p => HOME_LIKE_STATUSES.includes(plan[day]?.[p.id]?.status));
                     if (homeWorkers.length > 0) {
                         homeWorkers.sort((a, b) => {
                             const statsA = calculatePersonYearStats(year, a.id, plan);
@@ -2329,8 +2337,8 @@
                         people.forEach(person => {
                              if (!getActivePeopleForDate(y, m, d).some(p => p.id === person.id)) return;
                              const personStatus = dayData[person.id]?.status;
-                             if(personStatus === 'O') { reportStats[person.id].office++; reportStats[person.id].workDays++; }
-                             else if(personStatus === 'E') { reportStats[person.id].home++; reportStats[person.id].workDays++; }
+                             if(OFFICE_LIKE_STATUSES.includes(personStatus)) { reportStats[person.id].office++; reportStats[person.id].workDays++; }
+                             else if(HOME_LIKE_STATUSES.includes(personStatus)) { reportStats[person.id].home++; reportStats[person.id].workDays++; }
                              else if(LEAVE_STATUSES.includes(personStatus)) { reportStats[person.id].leave++; }
                              
                              if (dayData.oncall?.personId === person.id) reportStats[person.id].oncall++;
