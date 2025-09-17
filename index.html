@@ -6,11 +6,2555 @@
     <title>Çalışma Çizelgesi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .table-container { 
+            width: 100%; 
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch;
+        }
+        .no-select {
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+/Edge */
+            user-select: none; /* Standard */
+        }
+        table { border-collapse: separate; border-spacing: 0; }
+        th, td { white-space: nowrap; padding: 8px 4px; text-align: center; }
+        th:first-child, td:first-child { position: sticky; left: 0; z-index: 10; background-color: #f8fafc; cursor: pointer; }
+        thead th:first-child { z-index: 20; }
+        .status-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 500; margin: 0 auto; cursor: pointer; transition: all 0.2s ease-in-out; }
+        .status-circle:hover { transform: scale(1.1); }
+        .manual-override { box-shadow: 0 0 0 2px #ef4444; }
+        .main-table-weekend { background-color: #d1d5db; }
+        .office-cell { background-color: #bfdbfe; color: #1e40af; }
+        .home-cell { background-color: #a7f3d0; color: #065f46; }
+        .leave-cell { background-color: #fee2e2; color: #991b1b; }
+        .request-cell { background-color: #fecaca; color: #b91c1c; font-weight: bold; }
+        .inactive-cell { background-color: #e5e7eb; }
+        .past-day { background-color: #f3f4f6; color: #a1a1aa; }
+        .today-header { background-color: #3b82f6 !important; color: white; border-radius: 4px; }
+        .holiday-cell { background-color: #fef9c3 !important; color: #ca8a04 !important; }
+        .custom-modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.2); z-index: 40; }
+        .custom-modal-content { position: fixed; background-color: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); z-index: 50; padding: 8px; min-width: 180px; }
+        .custom-modal-item { padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .custom-modal-item:hover { background-color: #f3f4f6; }
+        .modal-color-swatch { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+        
+        #branch-visit-table input, #branch-visit-table select, #deploy-table input, #summary-view select, #people-management-table input {
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            width: 100%;
+            font-size: 14px;
+            background-color: transparent;
+        }
+        #branch-visit-table th, #deploy-table th, .report-table th, #people-management-table th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+        }
+        .visit-fiziki { background-color: #e0f2fe; }
+        .visit-online { background-color: #f0fdf4; }
+        
+        main.read-only-view { pointer-events: none; }
+        main.read-only-view > div { pointer-events: auto; }
+
+        #schedule-view.published-view { pointer-events: none; }
+        #schedule-view.published-view > div { pointer-events: auto; }
+        
+        #schedule-view.published-view .status-circle, #schedule-view.published-view .day-header, 
+        #schedule-view.published-view [data-type="oncall"], #schedule-view.published-view [data-type="deploy"],
+        #schedule-view.published-view #branch-visit-table input, #schedule-view.published-view #branch-visit-table select, 
+        #schedule-view.published-view #branch-visit-table button, #schedule-view.published-view #deploy-table input, 
+        #schedule-view.published-view #deploy-table button, #schedule-view.published-view #add-branch-visit-row {
+             pointer-events: none;
+        }
+        
+        #schedule-view.published-view #branch-visit-table input, #schedule-view.published-view #branch-visit-table select, 
+        #schedule-view.published-view #deploy-table input {
+             background-color: #f9fafb;
+        }
+        
+        .nav-btn { background-color: white; border: 1px solid #e5e7eb; color: #4b5563; }
+        .nav-btn.active { background-color: #3b82f6; color: white; border-color: #3b82f6; }
+
+        /* Calendar Styles */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .calendar-header { text-align: center; font-weight: 600; padding-bottom: 4px; color: #4b5563; }
+        .calendar-day { min-height: 120px; border-radius: 8px; position: relative; overflow-y: auto; background-color: #f9fafb; color: #9ca3af; display: flex; flex-direction: column; justify-content: space-between; padding: 4px; cursor: pointer; }
+        .calendar-day.current-month { background-color: #ffffff; color: #111827; border: 1px solid #e5e7eb; }
+        .calendar-day.weekend-day { background-color: #f3f4f6 !important; cursor: default; }
+        .day-number { font-weight: 600; text-align: left; position: relative; z-index: 2; }
+        .day-number.today { color: #ffffff; background-color: #3b82f6; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.8rem; font-weight: 800; color: rgba(0, 0, 0, 0.08); white-space: normal; pointer-events: none; z-index: 1; text-align: center; line-height: 1; }
+        .event-list { position: relative; z-index: 2; text-align: left; font-size: 13px; font-weight: 500; line-height: 1.4; display: flex; flex-direction: column; gap: 2px; }
+        .event-item { background-color: rgba(255,255,255,0.7); padding: 1px 4px; border-radius: 4px; }
+        .event-note { color: #57534e; }
+        .event-lock { color: #b91c1c; font-weight: 600;}
+        .event-visit { background-color: #e0f2fe; color: #0c4a6e; }
+        .event-deploy { background-color: #f3e8ff; color: #581c87; }
+    </style>
 </head>
 <body class="antialiased text-gray-800">
-    <!-- ... (tüm gövde içeriğiniz burada) ... -->
+
+    <div id="app" class="container mx-auto p-4 md:p-6">
+        <header class="mb-6 flex flex-col sm:flex-row justify-between items-start gap-4">
+            <h1 class="text-3xl font-bold text-gray-900">Çalışma Çizelgesi</h1>
+            <div id="auth-container" class="text-right flex-shrink-0">
+                 <div id="user-info" class="hidden items-center gap-4">
+                    <span id="user-name" class="font-semibold text-gray-700"></span>
+                    <button id="logout-btn" class="bg-red-500 text-white font-bold py-2 px-3 text-sm rounded-lg hover:bg-red-600 transition-colors shadow-sm">
+                        Çıkış Yap
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <nav id="main-nav" class="hidden mb-6 flex flex-col sm:flex-row items-center sm:justify-between gap-4 sm:gap-0 border-b border-gray-200">
+             <div class="flex items-center gap-2 flex-shrink-0">
+                <button id="schedule-nav-btn" class="nav-btn active py-2 px-4 text-sm font-semibold rounded-t-lg">Çizelge</button>
+                <button id="summary-nav-btn" class="nav-btn py-2 px-4 text-sm font-semibold rounded-t-lg">Özet</button>
+                <button id="calendar-nav-btn" class="nav-btn py-2 px-4 text-sm font-semibold rounded-t-lg">Takvim</button>
+                <button id="settings-nav-btn" class="nav-btn py-2 px-4 text-sm font-semibold rounded-t-lg">Ayarlar</button>
+            </div>
+             <div id="month-navigation-controls" class="flex items-center gap-2 flex-shrink-0">
+                <button id="prev-month" class="p-2 rounded-md hover:bg-gray-100 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <h2 id="current-month-year" class="text-xl font-semibold text-center px-4 w-48"></h2>
+                <button id="next-month" class="p-2 rounded-md hover:bg-gray-100 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+            </div>
+        </nav>
+
+        <main class="hidden">
+            <div id="loading-spinner" class="hidden text-center p-8 fixed top-0 left-0 w-full h-full bg-white bg-opacity-80 z-50 flex flex-col justify-center items-center">
+                <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto"></div>
+                <p class="mt-4 text-gray-700 font-semibold text-lg">Yükleniyor...</p>
+            </div>
+
+            <div id="schedule-view">
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                     <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
+                        <div id="publish-status" class="hidden font-semibold text-sm py-1 px-3 rounded-lg shadow-sm flex items-center gap-2"></div>
+                        <div id="admin-controls" class="flex flex-wrap justify-end items-center gap-2">
+                            <button id="export-schedule-btn" class="font-semibold text-sm py-1 px-3 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors shadow-sm flex items-center gap-2">
+                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.64L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
+                                    <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 1.5H9.5V3z"/>
+                                </svg>
+                                <span>Excele Aktar</span>
+                            </button>
+                            <button id="revert-button" class="font-semibold text-sm py-1 px-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors shadow-sm flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"></path><path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"></path></svg>
+                                <span>Geri Al</span>
+                            </button>
+                            <button id="delete-button" class="font-semibold text-sm py-1 px-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"></path><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"></path></svg>
+                                <span>Sil</span>
+                            </button>
+                            <button id="save-button" class="font-semibold text-sm py-1 px-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1-1H7.5a1 1 0 0 0-1 1H2zM3 3h2v2H3V3zm3 0h3v2H6V3zm4 0h2v2h-2V3zM3 7h2v2H3V7zm3 0h3v2H6V7zm4 0h2v2h-2V7zm-7 4h2v2H3v-2zm3 0h3v2H6v-2zm4 0h2v2h-2v-2z"></path></svg>
+                                <span>Kaydet</span>
+                            </button>
+                            <button id="publish-button" class="font-semibold text-sm py-1 px-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2">
+                            </button>
+                            <button id="auto-assign-button" class="font-semibold text-sm py-1 px-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-sm">
+                                Otomatik Ata
+                            </button>
+                        </div>
+                     </div>
+                    <div class="table-container no-select">
+                        <table class="min-w-full text-sm" id="schedule-table"></table>
+                    </div>
+                     <div id="month-events-summary" class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                        <div>
+                            <h4 class="font-semibold mb-2 border-b pb-1">Bu Ayın Şube Ziyaretleri</h4>
+                            <div id="visit-summary-list" class="space-y-1 text-xs"></div>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-2 border-b pb-1">Bu Ayın Deploy Görevleri</h4>
+                            <div id="deploy-summary-list" class="space-y-1 text-xs"></div>
+                        </div>
+                    </div>
+                     <div id="extra-details-container">
+                        <div class="mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-md border">
+                            <h3 id="branch-visit-title" class="text-xl font-semibold mb-4"></h3>
+                            <div class="table-container">
+                                <table class="w-full text-sm" id="branch-visit-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="p-2 border w-[180px]">Tarih</th>
+                                            <th class="p-2 border w-[150px]">Kişi</th>
+                                            <th class="p-2 border w-[120px]">Onl./Fiz.</th>
+                                            <th class="p-2 border w-auto">Şube Adı</th>
+                                            <th class="p-2 border w-[60px]">Sil</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                            <div class="mt-4 flex justify-end">
+                                <button id="add-branch-visit-row" class="bg-indigo-500 text-white font-bold h-8 w-8 flex items-center justify-center rounded-full hover:bg-indigo-600 transition-colors shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-md border">
+                            <h3 id="deploy-title" class="text-xl font-semibold mb-4"></h3>
+                            <div class="table-container">
+                                <table class="w-full text-sm" id="deploy-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="p-2 border w-[220px]">Tarih</th>
+                                            <th class="p-2 border w-[180px]">Kişi</th>
+                                            <th class="p-2 border w-auto">Şube Adı</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                     </div>
+                </div>
+            </div>
+            
+            <div id="summary-view" class="hidden">
+                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                     <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 border-b pb-4">
+                        <div class="flex items-center gap-4">
+                            <h3 class="text-xl font-semibold">Özet Rapor</h3>
+                            <button id="export-summary-btn" class="hidden font-semibold text-sm py-1 px-3 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors shadow-sm flex items-center gap-2">
+                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.64L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
+                                    <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 1.5H9.5V3z"/>
+                                </svg>
+                                <span>Excele Aktar</span>
+                            </button>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <label for="start-month-select" class="text-sm font-medium">Başlangıç:</label>
+                                <select id="start-month-select"></select>
+                                <select id="start-year-select"></select>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label for="end-month-select" class="text-sm font-medium">Bitiş:</label>
+                                <select id="end-month-select"></select>
+                                <select id="end-year-select"></select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="report-sub-nav" class="border-b border-gray-200 flex items-center gap-2">
+                        <button data-tab="schedule" class="report-tab-btn nav-btn active py-2 px-3 text-sm font-semibold rounded-t-lg">Çizelge</button>
+                        <button data-tab="visit" class="report-tab-btn nav-btn py-2 px-3 text-sm font-semibold rounded-t-lg">Şube Ziyaret</button>
+                        <button data-tab="deploy" class="report-tab-btn nav-btn py-2 px-3 text-sm font-semibold rounded-t-lg">Deploy</button>
+                    </div>
+
+                    <div id="report-results-container" class="mt-4">
+                         <div id="report-schedule-view" class="table-container"></div>
+                         <div id="report-visit-view" class="table-container hidden"></div>
+                         <div id="report-deploy-view" class="table-container hidden"></div>
+                    </div>
+                 </div>
+            </div>
+
+            <div id="calendar-view" class="hidden">
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                   <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                        <div class="flex items-center gap-4">
+                            <h3 id="calendar-title" class="text-lg font-semibold text-gray-800"></h3>
+                            <div id="calendar-publish-status" class="hidden font-semibold text-sm py-1 px-3 rounded-lg shadow-sm"></div>
+                        </div>
+                       <div class="flex items-center gap-4">
+                            <div id="person-selector-container">
+                                <select id="person-selector" class="border border-gray-300 rounded-lg px-4 py-2 text-base font-medium w-full sm:w-auto"></select>
+                            </div>
+                            <button id="calendar-save-btn" class="hidden font-semibold text-sm py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm">
+                                Değişiklikleri Kaydet
+                            </button>
+                       </div>
+                  </div>
+                   <div id="calendar-container"></div>
+                   <div id="calendar-summaries" class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm"></div>
+               </div>
+           </div>
+
+           <div id="settings-view" class="hidden">
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                <h3 class="text-lg font-semibold mb-4">Kişi Yönetimi</h3>
+                 <div class="table-container">
+                    <table id="people-management-table" class="w-full text-sm">
+                       <thead>
+                            <tr class="bg-gray-100">
+                                <th class="p-2 border w-16">Sıra</th>
+                                <th class="p-2 border">İsim</th>
+                                <th class="p-2 border">Şifre</th>
+                                <th class="p-2 border">İşe Başlama</th>
+                                <th class="p-2 border">İşten Ayrılma</th>
+                                <th class="p-2 border w-24">Eylemler</th>
+                            </tr>
+                       </thead>
+                       <tbody></tbody>
+                    </table>
+                 </div>
+                 <div class="mt-4 flex justify-end">
+                    <button id="add-person-btn" class="font-semibold text-sm py-2 px-4 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors shadow-sm">
+                        Yeni Kişi Ekle
+                    </button>
+                </div>
+            </div>
+        </div>
+            
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="note-modal-backdrop" class="custom-modal-backdrop hidden">
+        <div id="note-modal" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 60;">
+            <h3 id="note-modal-title" class="text-lg font-semibold mb-4">Not Ekle/Düzenle</h3>
+            <textarea id="note-input" class="w-full border border-gray-300 rounded-md p-2" rows="4"></textarea>
+            <div class="mt-6 flex justify-end gap-3">
+                <button id="note-cancel-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">İptal</button>
+                <button id="note-save-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">Kaydet</button>
+            </div>
+        </div>
+    </div>
+    <div id="password-modal-backdrop" class="custom-modal-backdrop hidden">
+        <div id="password-modal" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 60;">
+            <h3 class="text-lg font-semibold mb-4">Giriş Yap</h3>
+            <div class="space-y-4">
+                 <div>
+                    <label for="username-input" class="block text-sm font-medium text-gray-700">Kullanıcı Adı</label>
+                    <input type="text" id="username-input" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Kullanıcı Adı...">
+                </div>
+                <div>
+                    <label for="password-input" class="block text-sm font-medium text-gray-700">Şifre</label>
+                    <input type="password" id="password-input" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Şifre...">
+                </div>
+            </div>
+            <p id="password-error" class="text-red-500 text-sm mt-2 hidden">Hatalı kullanıcı adı veya şifre.</p>
+            <div class="mt-6 flex justify-end gap-3">
+                <button id="password-cancel-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">İptal</button>
+                <button id="password-submit-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">Giriş Yap</button>
+            </div>
+        </div>
+    </div>
+    <div id="custom-modal-backdrop" class="custom-modal-backdrop hidden">
+        <div id="custom-modal-content" class="custom-modal-content"></div>
+    </div>
+     <div id="confirm-modal-backdrop" class="custom-modal-backdrop hidden">
+        <div id="confirm-modal" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 60;">
+            <h3 id="confirm-modal-title" class="text-lg font-semibold mb-4">Emin misiniz?</h3>
+            <p id="confirm-modal-text" class="text-gray-600 mb-4">Bu işlem geri alınamaz.</p>
+            <div class="mt-6 flex justify-end gap-3">
+                <button id="confirm-cancel-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">İptal</button>
+                <button id="confirm-ok-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">Onayla</button>
+            </div>
+        </div>
+    </div>
+    <div id="info-modal-backdrop" class="custom-modal-backdrop hidden">
+        <div id="info-modal" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 60;">
+            <h3 id="info-modal-title" class="text-lg font-semibold mb-4">Uyarı</h3>
+            <div id="info-modal-text" class="text-gray-600 mb-4 whitespace-pre-line"></div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button id="info-ok-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">Tamam</button>
+            </div>
+        </div>
+    </div>
+    <div id="delete-modal-backdrop" class="custom-modal-backdrop hidden">
+        <div id="delete-modal" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 60;">
+            <h3 id="delete-modal-title" class="text-lg font-semibold mb-4">Bu Ayın Çizelgesini Sil</h3>
+            <p id="delete-modal-text" class="text-gray-600 mb-4">Hangi verileri silmek istediğinizi seçin. Değişikliğin kalıcı olması için ardından 'Kaydet' veya 'Yayınla' butonuna basmanız gerekir.</p>
+            <div class="mt-4 space-y-3">
+                <button id="delete-all-btn" class="w-full text-left bg-red-100 text-red-800 font-semibold py-2 px-4 rounded-lg hover:bg-red-200 transition-colors">Hepsini Sil</button>
+                <button id="delete-except-leaves-btn" class="w-full text-left bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">İzinler Hariç Sil</button>
+                <button id="delete-auto-btn" class="w-full text-left bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">Sadece Otomatik Atamaları Sil</button>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button id="delete-cancel-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">İptal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase and Local App Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const config = {
+            START_YEAR: 2025,
+            INITIAL_PEOPLE: ['Burak', 'Serkan', 'Yavuz', 'İbrahim', 'Tuğba', 'Görü', 'Nursema', 'Akif', 'Emre'],
+            SIMULATION_COUNT: 50,
+        };
+        
+        const loadingSpinner = document.getElementById('loading-spinner');
+        
+        const STATUSES = {
+            'O':   { label: 'Ofis (O)',          short: 'O',    class: 'office-cell',  color: '#bfdbfe' }, 
+            'E':   { label: 'Ev (E)',            short: 'E',    class: 'home-cell',    color: '#a7f3d0' },
+            'i':   { label: 'İzin (İ)',          short: 'İ',    class: 'leave-cell',   color: '#fee2e2' }, 
+            'iok': { label: 'İzin Onaylı (i✓)',  short: 'i✓',   class: 'leave-cell',   color: '#fee2e2' },
+            'SZ':  { label: 'Serbest Zaman (SZ)',short: 'SZ',   class: 'leave-cell',   color: '#fee2e2' }, 
+            'T':   { label: 'Tatil',             short: 'T',    class: 'holiday-cell', color: '#fef9c3' },
+            'izt': { label: 'İzin Talebi',       short: 'İz.T', class: 'request-cell', color: '#fecaca' },
+            'szt': { label: 'Sz.Talebi',         short: 'Sz.T', class: 'request-cell', color: '#fecaca' },
+        };
+        const LEAVE_STATUSES = ['i', 'iok', 'SZ'];
+        const REQUEST_STATUSES = ['izt', 'szt'];
+        const MONTH_NAMES = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+        const DAY_NAMES = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
+        
+        const todayForState = new Date();
+        let state = {
+            currentYear: todayForState.getFullYear(),
+            currentMonth: todayForState.getMonth(),
+            currentPage: 'schedule',
+            selectedReportTab: 'schedule',
+            currentUser: null,
+            data: {},
+            tempScheduleData: {},
+            calendarChanges: {} 
+        };
+        
+        let confirmCallback = null;
+        let noteModalCallback = null;
+        let appInitialized = false;
+
+        let db, auth, docRef;
+
+        // --- Element Selectors ---
+        const mainEl = document.querySelector('main');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userInfoDiv = document.getElementById('user-info');
+        const userNameSpan = document.getElementById('user-name');
+        const passwordModalBackdrop = document.getElementById('password-modal-backdrop');
+        const infoModalBackdrop = document.getElementById('info-modal-backdrop');
+
+        const autoAssignBtn = document.getElementById('auto-assign-button');
+        const saveBtn = document.getElementById('save-button');
+        const publishBtn = document.getElementById('publish-button');
+        const revertBtn = document.getElementById('revert-button');
+        const deleteBtn = document.getElementById('delete-button');
+        const adminControls = document.getElementById('admin-controls');
+        const monthEventsSummary = document.getElementById('month-events-summary');
+
+        const tableEl = document.getElementById('schedule-table');
+        const backdrop = document.getElementById('custom-modal-backdrop');
+        const modalContent = document.getElementById('custom-modal-content');
+        const currentMonthYearEl = document.getElementById('current-month-year');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const confirmModalBackdrop = document.getElementById('confirm-modal-backdrop');
+        const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+        const confirmOkBtn = document.getElementById('confirm-ok-btn');
+        const deleteModalBackdrop = document.getElementById('delete-modal-backdrop');
+        const publishStatusDiv = document.getElementById('publish-status');
+        const addBranchVisitRowBtn = document.getElementById('add-branch-visit-row');
+        
+        // Navigation & Views
+        const allNavBtns = document.querySelectorAll('#main-nav .nav-btn');
+        const allViews = document.querySelectorAll('main > div[id$="-view"]');
+        const settingsNavBtn = document.getElementById('settings-nav-btn');
+        const personSelector = document.getElementById('person-selector');
+        const personSelectorContainer = document.getElementById('person-selector-container');
+        const extraDetailsContainer = document.getElementById('extra-details-container');
+        const calendarContainer = document.getElementById('calendar-container');
+        const calendarSaveBtn = document.getElementById('calendar-save-btn');
+        const noteModalBackdrop = document.getElementById('note-modal-backdrop');
+        
+        const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
+
+        async function saveDataToFirestore() {
+            if (!docRef) {
+                console.error("Firestore is not initialized.");
+                showInfoModal("Hata", "Veritabanı bağlantısı kurulamadı. Değişiklikler kaydedilemedi.");
+                return;
+            }
+            try {
+                // Remove temp data before saving
+                const dataToSave = deepCopy(state.data);
+                await setDoc(docRef, dataToSave);
+                console.log("Data saved to Firestore.");
+            } catch (error) {
+                console.error("Error saving data to Firestore:", error);
+                showInfoModal("Veritabanı Hatası", "Değişiklikler kaydedilirken bir hata oluştu.");
+            }
+        }
+
+        function getPeople(sorted = true) {
+            const people = state.data.peopleData || [];
+            if (sorted) {
+                return [...people].sort((a, b) => a.order - b.order);
+            }
+            return people;
+        }
+
+        function getActivePeopleForDate(year, month, day) {
+            const people = getPeople();
+            const date = new Date(year, month, day);
+            date.setHours(0,0,0,0);
+
+            return people.filter(p => {
+                let startDate = null;
+                if (p.startDate) {
+                    const parts = p.startDate.split('-');
+                    startDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                }
+
+                let endDate = null;
+                if (p.endDate) {
+                    const parts = p.endDate.split('-');
+                    endDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                }
+
+                const started = !startDate || date.getTime() >= startDate.getTime();
+                const notEnded = !endDate || date.getTime() <= endDate.getTime();
+                return started && notEnded;
+            });
+        }
+        
+        function loadMonthData() {
+            const { currentYear: year, currentMonth: month } = state;
+            const published = state.data.publishedSchedules?.[year]?.[month];
+            const draft = state.data.draftSchedules?.[year]?.[month];
+            
+            if (state.currentUser.role === 'admin') {
+                state.tempScheduleData = deepCopy(draft || published || {});
+            } else {
+                state.tempScheduleData = deepCopy(draft || published || {}); // Users see drafts too now
+            }
+            state.calendarChanges = {};
+            updateUIMode();
+            renderAllDynamicViews();
+        }
+        
+        function loadDataFromFirestore() {
+            loadingSpinner.classList.remove('hidden');
+
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    state.data = docSnap.data();
+                    console.log("Data loaded from Firestore.");
+                } else {
+                    console.log("No document found in Firestore. Creating a new one with initial data.");
+                    const initialData = {
+                        draftSchedules: {},
+                        publishedSchedules: {},
+                        branchVisits: [],
+                        deployData: [],
+                        notes: {},
+                        peopleData: config.INITIAL_PEOPLE.map((name, index) => ({
+                            id: crypto.randomUUID(), name: name, password: '', order: index + 1,
+                            startDate: null, endDate: null
+                        }))
+                    };
+                    state.data = initialData;
+                    saveDataToFirestore();
+                }
+                
+                if (!state.data.draftSchedules) state.data.draftSchedules = {};
+                if (!state.data.publishedSchedules) state.data.publishedSchedules = {};
+                if (!state.data.branchVisits) state.data.branchVisits = [];
+                if (!state.data.deployData) state.data.deployData = [];
+                if (!state.data.notes) state.data.notes = {};
+                if (!state.data.peopleData) state.data.peopleData = [];
+
+                const savedUser = sessionStorage.getItem('currentUser');
+                if (savedUser) {
+                    state.currentUser = JSON.parse(savedUser);
+                    document.querySelector('nav').classList.remove('hidden');
+                    mainEl.classList.remove('hidden');
+                    updateUIForAuth();
+                } else {
+                    passwordModalBackdrop.classList.remove('hidden');
+                }
+                
+                loadingSpinner.classList.add('hidden');
+            }, (error) => {
+                console.error("Error listening to Firestore document:", error);
+                loadingSpinner.classList.add('hidden');
+                showInfoModal("Veritabanı Hatası", "Veriler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.");
+            });
+        }
+        
+        function setupEventListeners() {
+            // Month Navigation
+            prevMonthBtn.addEventListener('click', () => navigateMonth(-1));
+            nextMonthBtn.addEventListener('click', () => navigateMonth(1));
+            
+            // Main Navigation
+            allNavBtns.forEach(btn => btn.addEventListener('click', (e) => switchView(e.currentTarget.id.replace('-nav-btn', ''))));
+            
+            // Admin Controls
+            autoAssignBtn.addEventListener('click', () => showConfirmModal('Otomatik Atama Onayı', 'Mevcut kaydedilmemiş değişiklikler üzerine yazılacak. Emin misiniz?', runMonthlyAutoAssignment));
+            saveBtn.addEventListener('click', handleSave);
+            publishBtn.addEventListener('click', handlePublishToggle);
+            revertBtn.addEventListener('click', () => showConfirmModal('Değişiklikleri Geri Al', 'Kaydedilmemiş tüm değişiklikler iptal edilecek. Emin misiniz?', loadMonthData));
+            deleteBtn.addEventListener('click', () => deleteModalBackdrop.classList.remove('hidden'));
+            document.getElementById('export-schedule-btn').addEventListener('click', exportScheduleToExcel);
+            document.getElementById('export-summary-btn').addEventListener('click', exportSummaryToExcel);
+
+            // Table & Modals
+            tableEl.addEventListener('click', handleTableClick);
+            backdrop.addEventListener('click', () => backdrop.classList.add('hidden'));
+            confirmCancelBtn.addEventListener('click', () => confirmModalBackdrop.classList.add('hidden'));
+            confirmOkBtn.addEventListener('click', () => { if(confirmCallback) confirmCallback(); confirmModalBackdrop.classList.add('hidden'); });
+            noteModalBackdrop.querySelector('#note-cancel-btn').addEventListener('click', () => noteModalBackdrop.classList.add('hidden'));
+            noteModalBackdrop.querySelector('#note-save-btn').addEventListener('click', () => { if(noteModalCallback) noteModalCallback(); });
+            document.getElementById('info-ok-btn').addEventListener('click', () => infoModalBackdrop.classList.add('hidden'));
+
+            // Delete Modal
+            document.getElementById('delete-cancel-btn').addEventListener('click', () => deleteModalBackdrop.classList.add('hidden'));
+            document.getElementById('delete-all-btn').addEventListener('click', () => handleDelete('all'));
+            document.getElementById('delete-except-leaves-btn').addEventListener('click', () => handleDelete('except-leaves'));
+            document.getElementById('delete-auto-btn').addEventListener('click', () => handleDelete('auto-only'));
+            
+            // Details Tables
+            addBranchVisitRowBtn.addEventListener('click', addNewBranchVisitRow);
+
+            // Report Listeners
+            document.querySelectorAll('#summary-view select').forEach(el => el.addEventListener('change', generateAndRenderReport));
+            document.getElementById('report-sub-nav').addEventListener('click', e => {
+                if (e.target.matches('.report-tab-btn')) {
+                    state.selectedReportTab = e.target.dataset.tab;
+                    generateAndRenderReport();
+                }
+            });
+
+            // Auth Listeners
+            logoutBtn.addEventListener('click', handleLogout);
+            document.getElementById('password-cancel-btn').addEventListener('click', () => passwordModalBackdrop.classList.add('hidden'));
+            document.getElementById('password-submit-btn').addEventListener('click', handleLoginSubmit);
+
+            // Calendar
+            personSelector.addEventListener('change', renderPersonalCalendar);
+            calendarContainer.addEventListener('click', handleCalendarClick);
+            calendarSaveBtn.addEventListener('click', handleCalendarSave);
+
+            // Settings
+            document.getElementById('add-person-btn').addEventListener('click', handleAddNewPerson);
+        }
+
+        function updateUIForAuth() {
+            const user = state.currentUser;
+            if(!user) return; // Don't update UI if no user is logged in
+            
+            const isAdmin = user.role === 'admin';
+
+            userInfoDiv.classList.remove('hidden');
+            userNameSpan.textContent = user.name;
+            
+            adminControls.classList.toggle('hidden', !isAdmin);
+            settingsNavBtn.classList.toggle('hidden', !isAdmin);
+            extraDetailsContainer.classList.toggle('hidden', !isAdmin);
+            personSelectorContainer.classList.toggle('hidden', !isAdmin);
+            mainEl.classList.toggle('read-only-view', !isAdmin);
+            document.getElementById('export-summary-btn').classList.toggle('hidden', !isAdmin);
+            monthEventsSummary.classList.toggle('hidden', state.currentPage !== 'schedule');
+            
+            if (!isAdmin) {
+                switchView('calendar');
+            } else {
+                switchView(state.currentPage);
+            }
+            
+            populatePersonSelector();
+            loadMonthData();
+        }
+
+        function handleLoginSubmit() {
+            const usernameInput = document.getElementById('username-input');
+            const passwordInput = document.getElementById('password-input');
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+            const errorEl = document.getElementById('password-error');
+
+            let userFound = null;
+
+            if (username.toLowerCase() === 'admin' && password === 'kdtm0000') {
+                userFound = { name: 'Yönetici', role: 'admin' };
+            } 
+            else {
+                const regularUser = getPeople(false).find(p => p.name.toLowerCase() === username.toLowerCase() && (p.password || '').toLowerCase() === password.toLowerCase());
+                if(regularUser) {
+                    userFound = { id: regularUser.id, name: regularUser.name, role: 'user' };
+                }
+            }
+
+            if (userFound) {
+                state.currentUser = userFound;
+                sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                
+                passwordModalBackdrop.classList.add('hidden');
+                usernameInput.value = '';
+                passwordInput.value = '';
+                errorEl.classList.add('hidden');
+
+                document.querySelector('nav').classList.remove('hidden');
+                mainEl.classList.remove('hidden');
+
+                updateUIForAuth();
+            } else {
+                errorEl.classList.remove('hidden');
+            }
+        }
+        
+        function handleLogout() {
+            state.currentUser = null;
+            sessionStorage.removeItem('currentUser');
+            
+            document.querySelector('nav').classList.add('hidden');
+            mainEl.classList.add('hidden');
+            userInfoDiv.classList.add('hidden');
+            passwordModalBackdrop.classList.remove('hidden');
+        }
+        
+        function switchView(view) {
+            state.currentPage = view;
+            
+            allViews.forEach(v => v.classList.add('hidden'));
+            allNavBtns.forEach(b => b.classList.remove('active'));
+
+            document.getElementById(`${view}-view`).classList.remove('hidden');
+            document.getElementById(`${view}-nav-btn`).classList.add('active');
+            
+            document.getElementById('month-navigation-controls').style.visibility = (view === 'summary' || view === 'settings') ? 'hidden' : 'visible';
+            monthEventsSummary.classList.toggle('hidden', view !== 'schedule');
+            
+            renderAllDynamicViews();
+        }
+        
+        function renderAllDynamicViews() {
+            renderSchedule();
+            generateAndRenderReport();
+            renderPersonalCalendar();
+            renderSettingsPage();
+        }
+
+        function renderSchedule(){
+            renderMonthHeader();
+            renderTable();
+            renderUnderScheduleSummary();
+            if (state.currentUser.role === 'admin') {
+                renderBranchVisitTable();
+                renderDeployTable();
+            }
+        }
+
+        function showInfoModal(title, text) {
+            document.getElementById('info-modal-title').textContent = title;
+            document.getElementById('info-modal-text').textContent = text;
+            infoModalBackdrop.classList.remove('hidden');
+        }
+        
+        function showConfirmModal(title, text, onConfirm) {
+            document.getElementById('confirm-modal-title').textContent = title;
+            document.getElementById('confirm-modal-text').textContent = text;
+            confirmModalBackdrop.classList.remove('hidden');
+            confirmCallback = onConfirm;
+        }
+        
+        function showNoteModal(currentNote, onSave) {
+            noteModalBackdrop.classList.remove('hidden');
+            const noteInput = noteModalBackdrop.querySelector('#note-input');
+            noteInput.value = currentNote;
+            noteModalCallback = () => {
+                onSave(noteInput.value);
+                noteModalBackdrop.classList.add('hidden');
+            };
+        }
+
+        function navigateMonth(direction) {
+            let newMonth = state.currentMonth + direction;
+            let newYear = state.currentYear;
+            if (newMonth > 11) { newMonth = 0; newYear++; }
+            if (newMonth < 0) { newMonth = 11; newYear--; }
+            state.currentYear = newYear;
+            state.currentMonth = newMonth;
+            loadMonthData();
+        }
+        
+        function renderMonthHeader() {
+            const monthText = `${MONTH_NAMES[state.currentMonth]} ${state.currentYear}`;
+            currentMonthYearEl.textContent = monthText;
+            if (state.currentUser.role === 'admin') {
+                document.getElementById('branch-visit-title').textContent = `${monthText} Şube Ziyaret Çalışması`;
+                document.getElementById('deploy-title').textContent = `${monthText} Deploy Çalışması`;
+            }
+        }
+        
+        function handleTableClick(event) {
+            const cell = event.target.closest('[data-type], .day-header');
+            if (!cell || state.currentUser.role !== 'admin' || document.getElementById('schedule-view').classList.contains('published-view')) return;
+            
+            const { type, personId, date } = cell.dataset;
+            const [year, month, day] = date.split('-').map(Number);
+            let items = [];
+            const activePeopleToday = getActivePeopleForDate(year, month, day);
+
+            if (cell.classList.contains('day-header')) {
+                 items.push({ label: 'Günü Tatil Yap', action: () => { 
+                    activePeopleToday.forEach(p => updateData(day, p.id, 'status', 'T', true));
+                    updateData(day, null, 'oncall', null, false);
+                    updateData(day, null, 'deploy', null, false);
+                }});
+                items.push({ label: 'Tatili Temizle', action: () => { 
+                    activePeopleToday.forEach(p => { 
+                        if (state.tempScheduleData[day]?.[p.id]?.status === 'T') { 
+                            updateData(day, p.id, 'status', null, false); 
+                        } 
+                    });
+                }});
+            } else if (type === 'status') {
+                 const adminVisibleStatuses = Object.keys(STATUSES).filter(key => !REQUEST_STATUSES.includes(key));
+                 items = adminVisibleStatuses.map(key => ({
+                    label: STATUSES[key].label, color: STATUSES[key].color,
+                    action: () => { updateData(day, personId, 'status', key, true); }
+                }));
+                items.push({ label: 'Otomatik', action: () => { updateData(day, personId, 'status', null, false); } });
+            } else if (type === 'oncall' || type === 'deploy') {
+                items = activePeopleToday.map(p => ({ label: p.name, action: () => { updateData(day, null, type, { personId: p.id, manual: true }); } }));
+                const removeLabel = type === 'oncall' ? 'Otomatik' : 'Kaldır';
+                items.push({ label: removeLabel, action: () => { updateData(day, null, type, null, false); } });
+            }
+
+            if (items.length > 0) showModal(cell, items);
+        }
+        
+        // --- CALENDAR PAGE ---
+        function populatePersonSelector() {
+            const people = getPeople();
+            personSelector.innerHTML = '<option value="" selected disabled>-- Kişi Seçin --</option>';
+            people.forEach(person => {
+                const option = document.createElement('option');
+                option.value = person.id;
+                option.textContent = person.name;
+                personSelector.appendChild(option);
+            });
+            
+            if (state.currentUser?.role === 'user') {
+                personSelector.value = state.currentUser.id;
+            }
+        }
+        
+        function handleCalendarClick(event) {
+            const cell = event.target.closest('.calendar-day.current-month:not(.weekend-day)');
+            if (!cell || state.currentUser.role === 'admin') return; 
+            
+            const day = parseInt(cell.dataset.day);
+            const personId = state.currentUser.id;
+            const isPublished = state.tempScheduleData.isPublished || false;
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const cellDate = new Date(state.currentYear, state.currentMonth, day);
+            const dayData = state.tempScheduleData[day]?.[personId] || {};
+            const isLocked = dayData.manual || (state.calendarChanges[day]?.locked === true);
+
+            let items = [];
+
+            items.push({ label: 'Not Ekle', action: () => {
+                const currentNote = state.data.notes?.[state.currentYear]?.[state.currentMonth]?.[day]?.[personId] || '';
+                showNoteModal(currentNote, (newNote) => {
+                    if (!state.calendarChanges[day]) state.calendarChanges[day] = {};
+                    state.calendarChanges[day].note = newNote;
+                    calendarSaveBtn.classList.remove('hidden');
+                    renderPersonalCalendar();
+                });
+            }});
+
+            if (isPublished) {
+                const isAutoAssignedWorkDay = (dayData.status === 'E' || dayData.status === 'O') && !dayData.manual;
+
+                if (isLocked) { // Always allow unlocking
+                    items.push({ label: 'Sabitlemeyi Kaldır', action: () => {
+                        if (!state.calendarChanges[day]) state.calendarChanges[day] = {};
+                        state.calendarChanges[day].locked = false;
+                        calendarSaveBtn.classList.remove('hidden');
+                        renderPersonalCalendar();
+                    }});
+                } else if (isAutoAssignedWorkDay) { // Only allow locking auto-assigned work days
+                    items.push({ label: 'Sabitle', action: () => {
+                        if (!state.calendarChanges[day]) state.calendarChanges[day] = {};
+                        state.calendarChanges[day].locked = true;
+                        calendarSaveBtn.classList.remove('hidden');
+                        renderPersonalCalendar();
+                    }});
+                }
+            }
+            
+            if (!isPublished && cellDate >= today) {
+                if (REQUEST_STATUSES.includes(dayData.status)) {
+                    items.push({ label: 'İzin Talebini Kaldır', action: () => {
+                        if (!state.calendarChanges[day]) state.calendarChanges[day] = {};
+                        state.calendarChanges[day].status = null;
+                        calendarSaveBtn.classList.remove('hidden');
+                        renderPersonalCalendar();
+                    }});
+                } else {
+                    items.push({ label: 'İzin Talebi', action: () => {
+                        if (!state.calendarChanges[day]) state.calendarChanges[day] = {};
+                        state.calendarChanges[day].status = 'izt';
+                        calendarSaveBtn.classList.remove('hidden');
+                        renderPersonalCalendar();
+                    }});
+                    items.push({ label: 'Serbest Zaman Talebi', action: () => {
+                        if (!state.calendarChanges[day]) state.calendarChanges[day] = {};
+                        state.calendarChanges[day].status = 'szt';
+                        calendarSaveBtn.classList.remove('hidden');
+                        renderPersonalCalendar();
+                    }});
+                }
+            }
+
+            if (state.calendarChanges[day]) {
+                 items.push({ label: 'Değişikliği İptal Et', action: () => {
+                    delete state.calendarChanges[day];
+                    if (Object.keys(state.calendarChanges).length === 0) {
+                        calendarSaveBtn.classList.add('hidden');
+                    }
+                    renderPersonalCalendar();
+                }});
+            }
+
+            if(items.length > 0) showModal(cell, items);
+        }
+
+        async function handleCalendarSave() {
+            loadingSpinner.classList.remove('hidden');
+            const { currentYear: year, currentMonth: month } = state;
+            const personId = state.currentUser.id;
+            const isPublished = !!state.data.publishedSchedules?.[year]?.[month];
+            const hasLockChange = Object.values(state.calendarChanges).some(change => change.hasOwnProperty('locked'));
+
+            // Special logic for "Sabitle" on a published month
+            if (isPublished && hasLockChange) {
+                let publishedData = deepCopy(state.data.publishedSchedules[year][month]);
+                for (const day in state.calendarChanges) {
+                    const changes = state.calendarChanges[day];
+                    if (changes.hasOwnProperty('note')) {
+                        if (!state.data.notes) state.data.notes = {};
+                        if (!state.data.notes[year]) state.data.notes[year] = {};
+                        if (!state.data.notes[year][month]) state.data.notes[year][month] = {};
+                        if (!state.data.notes[year][month][day]) state.data.notes[year][month][day] = {};
+                        state.data.notes[year][month][day][personId] = changes.note;
+                    }
+                    if (changes.hasOwnProperty('locked')) {
+                        if (!publishedData[day]) publishedData[day] = {};
+                        if (!publishedData[day][personId]) publishedData[day][personId] = {};
+                        const existingStatus = publishedData[day]?.[personId]?.status;
+                        if(existingStatus) {
+                             publishedData[day][personId] = { status: existingStatus, manual: changes.locked };
+                        }
+                    }
+                }
+                state.data.publishedSchedules[year][month] = publishedData;
+                if (!state.data.draftSchedules[year]) state.data.draftSchedules[year] = {};
+                state.data.draftSchedules[year][month] = deepCopy(publishedData);
+            } else {
+                 // --- Original logic for unpublished months or non-locking changes ---
+                const draft = state.data.draftSchedules?.[year]?.[month];
+                const published = state.data.publishedSchedules?.[year]?.[month];
+                let monthToUpdate = deepCopy(draft || published || {});
+                for (const day in state.calendarChanges) {
+                    if (!monthToUpdate[day]) monthToUpdate[day] = {};
+                    if (state.currentUser.role === 'user' && !monthToUpdate[day][personId]) monthToUpdate[day][personId] = {};
+                    const changes = state.calendarChanges[day];
+                    if (changes.hasOwnProperty('note')) {
+                        if (!state.data.notes) state.data.notes = {};
+                        if (!state.data.notes[year]) state.data.notes[year] = {};
+                        if (!state.data.notes[year][month]) state.data.notes[year][month] = {};
+                        if (!state.data.notes[year][month][day]) state.data.notes[year][month][day] = {};
+                        state.data.notes[year][month][day][personId] = changes.note;
+                    }
+                    if (changes.hasOwnProperty('locked')) {
+                        monthToUpdate[day][personId].manual = changes.locked;
+                    }
+                    if (changes.hasOwnProperty('status')) {
+                         if (changes.status === null) {
+                             if (monthToUpdate[day] && monthToUpdate[day][personId]) {
+                                 delete monthToUpdate[day][personId];
+                                 if (Object.keys(monthToUpdate[day]).length === 0) {
+                                    delete monthToUpdate[day];
+                                }
+                             }
+                         } else {
+                            monthToUpdate[day][personId] = { status: changes.status, manual: true };
+                         }
+                    }
+                }
+                if (!state.data.draftSchedules[year]) state.data.draftSchedules[year] = {};
+                state.data.draftSchedules[year][month] = monthToUpdate;
+            }
+
+            await saveDataToFirestore();
+            state.calendarChanges = {};
+            calendarSaveBtn.classList.add('hidden');
+            loadingSpinner.classList.add('hidden');
+        }
+        
+        function renderPersonalCalendar() {
+            let personId = personSelector.value;
+            if (state.currentUser.role === 'user') {
+                personId = state.currentUser.id;
+                personSelector.value = personId;
+            }
+
+            const person = getPeople(false).find(p => p.id === personId);
+            const year = state.currentYear;
+            const month = state.currentMonth;
+            
+            const calendarContainer = document.getElementById('calendar-container');
+            const calendarTitle = document.getElementById('calendar-title');
+            
+            calendarContainer.innerHTML = '';
+
+            if (!person) {
+                calendarTitle.textContent = 'Kişisel Takvim';
+                document.getElementById('calendar-summaries').innerHTML = '';
+                calendarContainer.innerHTML = `<div class="text-center p-16 text-gray-500 bg-gray-50 rounded-lg">Lütfen takvimini görmek için bir kişi seçin.</div>`;
+                return;
+            }
+            
+            calendarTitle.textContent = `${person.name} - ${MONTH_NAMES[month]} ${year} Takvimi`;
+            const scheduleData = state.tempScheduleData;
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const dayIndex = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+
+            let html = '<div class="calendar-grid">';
+            ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].forEach(day => { html += `<div class="calendar-header">${day}</div>`; });
+            for (let i = 0; i < dayIndex; i++) { html += `<div class="calendar-day"></div>`; }
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const isToday = (today.getDate() === day && today.getMonth() === month && today.getFullYear() === year);
+
+                const currentStatusData = { ...scheduleData[day]?.[person.id] };
+                const pendingChange = state.calendarChanges[day];
+                if (pendingChange) {
+                    if (pendingChange.hasOwnProperty('status')) {
+                        if (pendingChange.status === null) {
+                             delete currentStatusData.status;
+                             delete currentStatusData.manual;
+                        } else {
+                            currentStatusData.status = pendingChange.status;
+                        }
+                    }
+                    if (pendingChange.hasOwnProperty('locked')) currentStatusData.manual = pendingChange.locked;
+                }
+                
+                const statusInfo = currentStatusData.status ? STATUSES[currentStatusData.status] : null;
+                let statusColor = statusInfo ? (statusInfo.color || '') : '#ffffff';
+                let statusText = statusInfo ? statusInfo.short : '';
+                
+                if(currentStatusData.status === 'szt') statusText = `SZ TALEP`;
+                if(currentStatusData.status === 'izt') statusText = `İZİN TALEP`;
+                if(currentStatusData.status) statusColor = statusInfo.class === 'request-cell' ? '#fecaca' : statusColor;
+
+                let events = [];
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                if (scheduleData[day]?.oncall?.personId === person.id) events.push('<span class="event-item">Nöbet</span>');
+                
+                if (scheduleData[day]?.deploy?.personId === person.id) {
+                    events.push(`<span class="event-item event-deploy">Deploy</span>`);
+                }
+                
+                const visitForDay = state.data.branchVisits?.find(v => v.date === dateStr && v.personId === person.id);
+                if (visitForDay) {
+                    events.push(`<span class="event-item event-visit">Ziyaret</span>`);
+                }
+                
+                const note = (pendingChange?.note !== undefined) ? pendingChange.note : (state.data.notes?.[year]?.[month]?.[day]?.[personId] || '');
+                if(note) events.push(`<span class="event-item event-note">Not: ${note}</span>`);
+                if(currentStatusData.manual && !REQUEST_STATUSES.includes(currentStatusData.status)) events.push('<span class="event-item event-lock">Sabit</span>');
+                
+                const eventText = events.join('');
+                
+                let dayClasses = `calendar-day current-month`;
+                if(date.getDay() === 0 || date.getDay() === 6) dayClasses += " weekend-day";
+
+                html += `<div class="${dayClasses}" data-day="${day}" style="background-color: ${statusColor};">
+                            <span class="day-number ${isToday ? 'today' : ''}">${day}</span>
+                            <div class="watermark">${statusText}</div>
+                            <div class="event-list">${eventText}</div>
+                         </div>`;
+            }
+            html += '</div>';
+            calendarContainer.innerHTML = html;
+            renderPersonalCalendarSummaries(personId, year, month);
+        }
+        
+        function renderPersonalCalendarSummaries(personId, year, month) {
+            const summariesContainer = document.getElementById('calendar-summaries');
+            summariesContainer.innerHTML = '';
+            
+            const allVisits = state.data.branchVisits || [];
+            const personVisits = allVisits.filter(v => {
+                if(!v.date || v.personId !== personId) return false;
+                const visitDate = new Date(v.date);
+                return visitDate.getFullYear() === year && visitDate.getMonth() === month;
+            }).sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            const scheduleData = state.tempScheduleData || {};
+            const deployData = state.data.deployData || [];
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            let personDeploys = [];
+            for (let day = 1; day <= daysInMonth; day++) {
+                if (scheduleData[day]?.deploy?.personId === personId) {
+                    const date = new Date(year, month, day);
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    let eventData = deployData.find(d => d.date === dateStr) || { name: '(Belirtilmemiş)' };
+                    personDeploys.push({ date: date, name: eventData.name });
+                }
+            }
+            personDeploys.sort((a,b) => a.date - b.date);
+
+            let visitHtml = '<div><h4 class="font-semibold mb-2 border-b pb-1">Bu Ayki Ziyaretleriniz</h4>';
+            if (personVisits.length > 0) {
+                visitHtml += '<div class="space-y-1 text-xs">';
+                personVisits.forEach(visit => {
+                    const formattedDate = formatSummaryDate(visit.date);
+                    visitHtml += `<p>${formattedDate} - ${visit.name || '(Belirtilmemiş)'} (${visit.type})</p>`;
+                });
+                visitHtml += '</div>';
+            } else {
+                visitHtml += '<p class="text-gray-500 text-xs">Bu ay için planlanmış ziyaretiniz yok.</p>';
+            }
+            visitHtml += '</div>';
+
+            let deployHtml = '<div><h4 class="font-semibold mb-2 border-b pb-1">Bu Ayki Deploy Görevleriniz</h4>';
+            if (personDeploys.length > 0) {
+                deployHtml += '<div class="space-y-1 text-xs">';
+                personDeploys.forEach(deploy => {
+                    const formattedDate = formatSummaryDate(deploy.date);
+                    deployHtml += `<p>${formattedDate} - ${deploy.name}</p>`;
+                });
+                deployHtml += '</div>';
+            } else {
+                deployHtml += '<p class="text-gray-500 text-xs">Bu ay için planlanmış deploy göreviniz yok.</p>';
+            }
+            deployHtml += '</div>';
+
+            summariesContainer.innerHTML = visitHtml + deployHtml;
+        }
+
+        // --- SETTINGS PAGE ---
+        function renderSettingsPage() {
+            if (state.currentUser?.role !== 'admin') return;
+            const people = getPeople();
+            const tableBody = document.querySelector('#people-management-table tbody');
+            tableBody.innerHTML = '';
+            people.forEach(person => {
+                const tr = document.createElement('tr');
+                tr.dataset.id = person.id;
+                tr.innerHTML = `
+                    <td class="p-1 border"><input type="number" class="order-input w-16 text-center" value="${person.order}"></td>
+                    <td class="p-1 border"><input type="text" class="name-input" value="${person.name}"></td>
+                    <td class="p-1 border"><input type="password" class="password-input" value="${person.password || ''}"></td>
+                    <td class="p-1 border"><input type="date" class="start-date-input" value="${person.startDate || ''}"></td>
+                    <td class="p-1 border"><input type="date" class="end-date-input" value="${person.endDate || ''}"></td>
+                    <td class="p-1 border text-center">
+                        <button class="save-person-btn bg-green-500 text-white p-2 rounded-md hover:bg-green-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M15.854 3.146a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.708 0l-4-4a.5.5 0 1 1 .708-.708L5 12.293l9.646-9.647a.5.5 0 0 1 .708 0z"/></svg>
+                        </button>
+                        <button class="delete-person-btn bg-red-500 text-white p-2 rounded-md hover:bg-red-600 ml-2">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+            tableBody.querySelectorAll('.save-person-btn').forEach(btn => btn.addEventListener('click', handleSavePerson));
+            tableBody.querySelectorAll('.delete-person-btn').forEach(btn => btn.addEventListener('click', handleDeletePerson));
+        }
+
+        async function handleSavePerson(e) {
+            loadingSpinner.classList.remove('hidden');
+            const tr = e.target.closest('tr');
+            const id = tr.dataset.id;
+            const person = state.data.peopleData.find(p => p.id === id);
+            if (person) {
+                person.order = parseInt(tr.querySelector('.order-input').value) || 0;
+                person.name = tr.querySelector('.name-input').value;
+                person.password = tr.querySelector('.password-input').value;
+                person.startDate = tr.querySelector('.start-date-input').value || null;
+                person.endDate = tr.querySelector('.end-date-input').value || null;
+                await saveDataToFirestore();
+            }
+            loadingSpinner.classList.add('hidden');
+        }
+
+        function handleDeletePerson(e) {
+            const tr = e.target.closest('tr');
+            const id = tr.dataset.id;
+            const person = state.data.peopleData.find(p => p.id === id);
+            if (person) {
+                showConfirmModal('Kişiyi Sil', `'${person.name}' adlı kişiyi silmek istediğinizden emin misiniz?`, async () => {
+                    loadingSpinner.classList.remove('hidden');
+                    state.data.peopleData = state.data.peopleData.filter(p => p.id !== id);
+                    await saveDataToFirestore();
+                });
+            }
+        }
+        
+        async function handleAddNewPerson() {
+            loadingSpinner.classList.remove('hidden');
+            const maxOrder = Math.max(0, ...state.data.peopleData.map(p => p.order));
+            state.data.peopleData.push({
+                id: crypto.randomUUID(), name: 'Yeni Kişi', password: '',
+                startDate: null, endDate: null, order: maxOrder + 1
+            });
+            await saveDataToFirestore();
+        }
+        
+        function renderTable() {
+            const { currentYear: year, currentMonth: month } = state;
+            const scheduleData = state.tempScheduleData || {};
+            const people = getPeople();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            let headerHtml = '<thead><tr><th class="w-32 py-3 px-2 border-b border-gray-200 bg-gray-50 text-left font-semibold text-gray-600">Kişi</th>';
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dayName = DAY_NAMES[date.getDay()];
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                const isToday = date.getTime() === today.getTime();
+                
+                let thClasses = `border-b border-l border-gray-200 font-semibold ${isWeekend ? 'main-table-weekend' : ''}`;
+                let divClasses = `flex flex-col items-center justify-center p-1 day-header cursor-pointer`;
+                if(isToday) divClasses += ' today-header';
+                
+                headerHtml += `<th class="${thClasses}"><div class="${divClasses}" data-date="${year}-${month}-${day}"><span>${day}</span><span class="font-normal text-xs">${dayName}</span></div></th>`;
+            }
+            headerHtml += '<th class="border-b border-l border-gray-200 bg-gray-50 font-semibold text-gray-600">Aylık<br>%</th>';
+            headerHtml += '<th class="border-b border-l border-gray-200 bg-gray-50 font-semibold text-gray-600">Yıllık<br>%</th>';
+            headerHtml += '</tr></thead>';
+            
+            let bodyHtml = '<tbody>';
+            const activePeopleForMonth = people.filter(p => {
+                 const monthStart = new Date(year, month, 1);
+                 const monthEnd = new Date(year, month, daysInMonth);
+                 return true;
+            });
+
+            activePeopleForMonth.forEach(person => {
+                bodyHtml += `<tr><td class="w-32 py-3 px-2 border-b border-gray-200 text-left font-semibold text-gray-700 bg-white">${person.name}</td>`;
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(year, month, day);
+                    const isPast = date < today;
+                    const isWeekend = date.getDay() % 6 === 0;
+                    const isActive = getActivePeopleForDate(year, month, day).some(p => p.id === person.id);
+                    let cellContent = '';
+                    let tdClasses = 'border-b border-l border-gray-200';
+                    if (isWeekend) tdClasses += ' main-table-weekend';
+                    if (!isActive) tdClasses += ' inactive-cell';
+                    if (isPast && !isWeekend) tdClasses += ' past-day';
+
+                    const dayData = scheduleData[day]?.[person.id] || {};
+                    if (!isWeekend && isActive) {
+                        if (dayData.status) {
+                            const statusInfo = STATUSES[dayData.status] || {};
+                            const manualClass = dayData.manual ? 'manual-override' : '';
+                            const statusText = statusInfo.short || dayData.status.toUpperCase();
+                            cellContent = `<div class="status-circle ${statusInfo.class || ''} ${manualClass}" data-type="status" data-person-id="${person.id}" data-date="${year}-${month}-${day}">${statusText}</div>`;
+                        } else {
+                            cellContent = `<div class="status-circle bg-gray-100" data-type="status" data-person-id="${person.id}" data-date="${year}-${month}-${day}"></div>`;
+                        }
+                    }
+                    bodyHtml += `<td class="${tdClasses}">${cellContent}</td>`;
+                }
+                
+                const monthStats = calculatePersonMonthStats(year, month, person.id);
+                const yearStats = calculatePersonYearStats(year, person.id);
+                const monthRatio = monthStats.workDays > 0 ? Math.round((monthStats.officeDays / monthStats.workDays) * 100) : 0;
+                const yearRatio = yearStats.workDays > 0 ? Math.round((yearStats.officeDays / yearStats.workDays) * 100) : 0;
+                const monthTdClass = monthRatio < 51 && monthStats.workDays > 0 ? 'bg-red-200 text-red-800' : '';
+                const yearTdClass = yearRatio < 51 && yearStats.workDays > 0 ? 'bg-red-200 text-red-800' : '';
+
+
+                bodyHtml += `<td class="border-b border-l border-gray-200 font-bold ${monthTdClass}">${monthRatio}%</td>`;
+                bodyHtml += `<td class="border-b border-l border-gray-200 font-bold ${yearTdClass}">${yearRatio}%</td>`;
+                bodyHtml += `</tr>`;
+            });
+
+            bodyHtml += `<tr><td class="py-2 px-2 border-b border-gray-200 text-left font-semibold text-gray-700 bg-gray-50">Günlük Ofis %</td>`;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const isWeekend = new Date(year, month, day).getDay() % 6 === 0;
+                let cellContent = '';
+                let tdClasses = `border-b border-l border-gray-200 font-semibold text-sm`;
+
+                if (isWeekend) {
+                    tdClasses += ' main-table-weekend';
+                } else {
+                    tdClasses += ' bg-gray-50';
+                    const activePeopleToday = getActivePeopleForDate(year, month, day);
+                    let officeCount = 0;
+                    let workCount = 0;
+                    activePeopleToday.forEach(person => {
+                        const status = scheduleData[day]?.[person.id]?.status;
+                        if (status === 'O') officeCount++;
+                        if (status === 'E' || status === 'O') workCount++;
+                    });
+                    const ratio = workCount > 0 ? Math.round((officeCount / workCount) * 100) : 0;
+                    cellContent = `${ratio}%`;
+                    if (workCount > 0 && ratio < 50) {
+                        tdClasses += ' bg-red-200 text-red-800';
+                    }
+                }
+                bodyHtml += `<td class="${tdClasses}">${cellContent}</td>`;
+            }
+            bodyHtml += `<td class="border-b border-l border-gray-200 bg-gray-50"></td>`;
+            bodyHtml += `<td class="border-b border-l border-gray-200 bg-gray-50"></td>`;
+            bodyHtml += `</tr>`;
+
+            // Nöbetçi Satırı
+            bodyHtml += `<tr><td class="py-3 px-2 border-b border-gray-200 text-left font-semibold text-gray-700 bg-white">Nöbetçi</td>`;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                let tdClasses = `border-b border-l border-gray-200 ${date.getDay() % 6 === 0 ? 'main-table-weekend' : ''}`;
+                let cellContent = '';
+                if (date.getDay() % 6 !== 0) {
+                    const dayData = scheduleData[day] || {};
+                    const oncallData = dayData.oncall || {};
+                    const oncallPerson = getPeople(false).find(p => p.id === oncallData.personId);
+                    const oncallPersonStatus = oncallPerson ? (dayData[oncallPerson.id]?.status) : null;
+                    const text = oncallPerson ? oncallPerson.name.substring(0, 3).toUpperCase() : '-';
+                    
+                    const isWorkingDay = getActivePeopleForDate(year, month, day).some(p => dayData[p.id]?.status === 'E' || dayData[p.id]?.status === 'O');
+                    const isError = (isWorkingDay && oncallPerson && oncallPersonStatus !== 'E');
+                    if (isError) tdClasses += ' bg-red-200';
+                    
+                    cellContent = `<div class="p-2 rounded-md font-bold text-blue-800 cursor-pointer ${oncallData.manual ? 'manual-override' : ''}" data-type="oncall" data-date="${year}-${month}-${day}">${text}</div>`;
+                }
+                bodyHtml += `<td class="${tdClasses}">${cellContent}</td>`;
+            }
+            bodyHtml += `<td class="border-b border-l border-gray-200 bg-white" colspan="2"></td></tr>`;
+
+            // Deploy Satırı
+            bodyHtml += `<tr><td class="py-3 px-2 border-b border-gray-200 text-left font-semibold text-gray-700 bg-white">Deploy</td>`;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                let tdClasses = `border-b border-l border-gray-200 ${date.getDay() % 6 === 0 ? 'main-table-weekend' : ''}`;
+                let cellContent = '';
+                if (date.getDay() % 6 !== 0) {
+                    const dayData = scheduleData[day] || {};
+                    const deployData = dayData.deploy || {};
+                    const deployPerson = getPeople(false).find(p => p.id === deployData.personId);
+                    const deployPersonStatus = deployPerson ? (dayData[deployPerson.id]?.status) : null;
+                    const text = deployPerson ? deployPerson.name.substring(0, 3).toUpperCase() : '-';
+
+                    if (deployPerson && deployPersonStatus === 'O') tdClasses += ' bg-red-200';
+                    
+                    cellContent = `<div class="p-2 rounded-md font-bold text-purple-800 cursor-pointer ${deployData.manual ? 'manual-override' : ''}" data-type="deploy" data-date="${year}-${month}-${day}">${text}</div>`;
+                }
+                bodyHtml += `<td class="${tdClasses}">${cellContent}</td>`;
+            }
+            bodyHtml += `<td class="border-b border-l border-gray-200 bg-white" colspan="2"></td></tr>`;
+
+            bodyHtml += '</tbody>';
+            tableEl.innerHTML = headerHtml + bodyHtml;
+        }
+
+        function showModal(targetElement, items) {
+            modalContent.innerHTML = '';
+            items.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.classList.add('custom-modal-item');
+                if(item.color) itemEl.innerHTML += `<div class="modal-color-swatch" style="background-color: ${item.color}"></div>`;
+                itemEl.innerHTML += `<span>${item.label}</span>`;
+                itemEl.addEventListener('click', () => { item.action(); backdrop.classList.add('hidden'); });
+                modalContent.appendChild(itemEl);
+            });
+            const rect = targetElement.getBoundingClientRect();
+            modalContent.style.visibility = 'hidden';
+            backdrop.classList.remove('hidden');
+            const modalRect = modalContent.getBoundingClientRect();
+            let top = rect.bottom + 5;
+            let left = rect.left;
+            if (top + modalRect.height > window.innerHeight) top = rect.top - modalRect.height - 5;
+            if (left + modalRect.width > window.innerWidth) left = rect.right - modalRect.width;
+            modalContent.style.top = `${top}px`;
+            modalContent.style.left = `${left}px`;
+            modalContent.style.visibility = 'visible';
+        }
+        
+        async function updateData(day, personId, type, value, isManual, shouldRender = true) {
+            state.tempScheduleData[day] = state.tempScheduleData[day] || {};
+            if (type === 'status') {
+                state.tempScheduleData[day][personId] = state.tempScheduleData[day][personId] || {};
+                if(value === null) {
+                    delete state.tempScheduleData[day][personId];
+                } else {
+                    state.tempScheduleData[day][personId] = { status: value, manual: isManual };
+                }
+            } else { // oncall, deploy
+                 if(value === null) {
+                    delete state.tempScheduleData[day][type];
+                } else {
+                    state.tempScheduleData[day][type] = value;
+                }
+            }
+            if(shouldRender) {
+                renderSchedule();
+            }
+        }
+
+        function calculatePersonMonthStats(year, month, personId, schedule = state.tempScheduleData, upToDay = 32) {
+            const stats = { officeDays: 0, workDays: 0, oncallCount: 0 };
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            for (let day = 1; day < upToDay && day <= daysInMonth; day++) {
+                if (new Date(year, month, day).getDay() % 6 === 0) continue;
+                if (!getActivePeopleForDate(year, month, day).some(p => p.id === personId)) continue;
+
+                const pStatus = schedule[day]?.[personId]?.status;
+                if (pStatus && !LEAVE_STATUSES.includes(pStatus) && !REQUEST_STATUSES.includes(pStatus) && pStatus !== 'T') {
+                    stats.workDays++;
+                    if (pStatus === 'O') {
+                        stats.officeDays++;
+                    }
+                }
+                 if (schedule[day]?.oncall?.personId === personId) {
+                    stats.oncallCount++;
+                }
+            }
+            return stats;
+        }
+
+        function calculatePersonYearStats(targetYear, personId, tempMonthData = state.tempScheduleData) {
+            const stats = { officeDays: 0, workDays: 0, oncallCount: 0 };
+            for (let month = 0; month < 12; month++) {
+                const scheduleSource = (month === state.currentMonth && targetYear === state.currentYear)
+                    ? tempMonthData
+                    : (state.data.publishedSchedules?.[targetYear]?.[month] || state.data.draftSchedules?.[targetYear]?.[month] || {});
+                
+                if(!scheduleSource) continue;
+
+                const monthStats = calculatePersonMonthStats(targetYear, month, personId, scheduleSource);
+                stats.officeDays += monthStats.officeDays;
+                stats.workDays += monthStats.workDays;
+                stats.oncallCount += monthStats.oncallCount;
+            }
+            return stats;
+        }
+        
+        function getStatusOnDate(personId, year, month, day, schedule) {
+            if (day < 1) { // Handle checks for previous month
+                const prevDate = new Date(year, month, day);
+                const prevYear = prevDate.getFullYear();
+                const prevMonth = prevDate.getMonth();
+                const prevDay = prevDate.getDate();
+                const scheduleSource = (prevYear === state.currentYear && prevMonth === state.currentMonth) ?
+                    schedule :
+                    (state.data.publishedSchedules?.[prevYear]?.[prevMonth] || state.data.draftSchedules?.[prevYear]?.[prevMonth] || {});
+                return scheduleSource?.[prevDay]?.[personId]?.status;
+            }
+            const scheduleSource = (year === state.currentYear && month === state.currentMonth) ?
+                schedule :
+                (state.data.publishedSchedules?.[year]?.[month] || state.data.draftSchedules?.[year]?.[month] || {});
+
+            return scheduleSource?.[day]?.[personId]?.status;
+        }
+
+        function getPastConsecutiveHomeDays(person, year, month, day, schedule) {
+            let consecutiveHome = 0;
+            let currentDate = new Date(year, month, day);
+            
+            for (let i = 0; i < 5; i++) { 
+                currentDate.setDate(currentDate.getDate() - 1);
+                const d_day = currentDate.getDate();
+                const d_month = currentDate.getMonth();
+                const d_year = currentDate.getFullYear();
+
+                if (!getActivePeopleForDate(d_year, d_month, d_day).some(p => p.id === person.id)) continue;
+
+                const personStatus = getStatusOnDate(person.id, d_year, d_month, d_day, schedule);
+                
+                if (currentDate.getDay() % 6 === 0 || LEAVE_STATUSES.includes(personStatus) || personStatus === 'T') {
+                    continue;
+                }
+                
+                if (personStatus === 'E') {
+                    consecutiveHome++;
+                } else {
+                    break;
+                }
+            }
+            return consecutiveHome;
+        }
+
+        function getWeekInfo(person, year, month, day, schedule) {
+            const date = new Date(year, month, day);
+            const weekStart = new Date(date);
+            const dayOfWeek = date.getDay();
+            // Set to Monday of the week
+            weekStart.setDate(date.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+            weekStart.setHours(0,0,0,0);
+
+            let weekWorkDays = 0;
+            let weekHomeDays = 0;
+            let weekOfficeDays = 0;
+
+            for (let i = 0; i < 5; i++) { 
+                const d = new Date(weekStart);
+                d.setDate(weekStart.getDate() + i);
+                
+                const d_day = d.getDate();
+                const d_month = d.getMonth();
+                const d_year = d.getFullYear();
+
+                if (!getActivePeopleForDate(d_year, d_month, d_day).some(p => p.id === person.id)) continue;
+                
+                const personStatus = getStatusOnDate(person.id, d_year, d_month, d_day, schedule);
+
+                if (personStatus && !LEAVE_STATUSES.includes(personStatus) && !REQUEST_STATUSES.includes(personStatus) && personStatus !== 'T') {
+                    weekWorkDays++;
+                    if (personStatus === 'E') {
+                        weekHomeDays++;
+                    } else if (personStatus === 'O') {
+                        weekOfficeDays++;
+                    }
+                }
+            }
+            return { weekWorkDays, weekHomeDays, weekOfficeDays };
+        }
+        
+        function calculateTotalWorkDaysInMonth(year, month, personId, schedule) {
+            let workDays = 0;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                if (date.getDay() % 6 === 0) continue; 
+                if (!getActivePeopleForDate(year, month, day).some(p => p.id === personId)) continue;
+                
+                const pStatus = schedule[day]?.[personId]?.status;
+                if (!LEAVE_STATUSES.includes(pStatus) && !REQUEST_STATUSES.includes(pStatus) && pStatus !== 'T') {
+                    workDays++;
+                }
+            }
+            return workDays;
+        }
+
+        function runMonthlyAutoAssignment() {
+            loadingSpinner.classList.remove('hidden');
+            
+            setTimeout(() => {
+                let bestPlan = null;
+                let highestScore = -Infinity;
+
+                for(let i = 0; i < config.SIMULATION_COUNT; i++) {
+                    const newPlan = generateSinglePlan();
+                    if (newPlan) {
+                        const score = evaluatePlan(newPlan);
+                        if (score > highestScore) {
+                            highestScore = score;
+                            bestPlan = newPlan;
+                        }
+                    }
+                }
+                
+                if (bestPlan) {
+                    const finalPlan = assignOncallAndDeployToPlan(bestPlan);
+                    state.tempScheduleData = finalPlan;
+                } else {
+                    showInfoModal("Uyarı","Belirtilen kurallarla uygun bir plan oluşturulamadı. Lütfen izinleri veya manuel atamaları kontrol edin.");
+                }
+
+                renderSchedule();
+                loadingSpinner.classList.add('hidden');
+            }, 50); 
+        }
+
+        function generateSinglePlan() {
+            const { currentYear: year, currentMonth: month } = state;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let plan = deepCopy(state.tempScheduleData);
+            for(let day=1; day <= daysInMonth; day++) {
+                if(!plan[day]) continue;
+                for(const personId in plan[day]){
+                    if (getPeople(false).some(p => p.id === personId)) {
+                        const entry = plan[day][personId];
+                        if(entry && !entry.manual && !LEAVE_STATUSES.includes(entry.status)) {
+                            delete plan[day][personId];
+                        }
+                    }
+                }
+            }
+
+            const people = getPeople();
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                if (date < today || date.getDay() % 6 === 0) continue;
+                
+                const dayIsHoliday = people.some(p => getStatusOnDate(p.id, year, month, day, plan) === 'T');
+                if(dayIsHoliday) continue;
+                
+                const activePeople = getActivePeopleForDate(year, month, day);
+                const assignablePeople = activePeople.filter(p => {
+                    const status = getStatusOnDate(p.id, year, month, day, plan);
+                    return !status;
+                });
+                
+                if (assignablePeople.length === 0) continue;
+
+                let assignments = {};
+                let flexiblePeople = [];
+
+                assignablePeople.forEach(person => {
+                    let forceOffice = false;
+                    
+                    if (getPastConsecutiveHomeDays(person, year, month, day, plan) >= 3) {
+                        forceOffice = true;
+                    }
+
+                    if (!forceOffice) {
+                        const { weekHomeDays } = getWeekInfo(person, year, month, day, plan);
+                        if(weekHomeDays >= 3) {
+                            forceOffice = true;
+                        }
+                    }
+
+                    if (!forceOffice) {
+                        const totalWorkDays = calculateTotalWorkDaysInMonth(year, month, person.id, plan);
+                        if (totalWorkDays > 0) {
+                            const requiredOffice = Math.ceil(totalWorkDays * 0.51);
+                            let officeDaysSoFar = 0;
+                            let remainingWorkDays = 0;
+                            
+                            for (let d = 1; d <= daysInMonth; d++) {
+                                if (new Date(year, month, d).getDay() % 6 === 0) continue;
+                                if (!getActivePeopleForDate(year, month, d).some(p => p.id === person.id)) continue;
+                                
+                                const status = getStatusOnDate(person.id, year, month, d, plan);
+                                if (!LEAVE_STATUSES.includes(status) && !REQUEST_STATUSES.includes(status) && status !== 'T') {
+                                    if (d < day && status === 'O') {
+                                        officeDaysSoFar++;
+                                    }
+                                    if(d >= day && !status) {
+                                       remainingWorkDays++;
+                                    }
+                                }
+                            }
+                           
+                            if (requiredOffice - officeDaysSoFar >= remainingWorkDays) {
+                                forceOffice = true;
+                            }
+                        }
+                    }
+
+                    if(forceOffice) {
+                        assignments[person.id] = 'O';
+                    } else {
+                        flexiblePeople.push(person);
+                    }
+                });
+                
+                const workingTodayCount = activePeople.filter(p => !LEAVE_STATUSES.includes(getStatusOnDate(p.id, year, month, day, plan)) && !REQUEST_STATUSES.includes(getStatusOnDate(p.id, year, month, day, plan))).length;
+                const dailyRequiredOffice = Math.ceil(workingTodayCount * 0.5);
+                const manualOfficeCount = activePeople.filter(p => !assignablePeople.some(ap => ap.id === p.id) && getStatusOnDate(p.id, year, month, day, plan) === 'O').length;
+                let currentOfficeCount = Object.values(assignments).filter(s => s === 'O').length + manualOfficeCount;
+
+                if (flexiblePeople.length > 0) {
+                    let neededFromFlexible = Math.max(0, dailyRequiredOffice - currentOfficeCount);
+
+                    const scoredPeople = flexiblePeople.map(person => {
+                        const { weekOfficeDays } = getWeekInfo(person, year, month, day, plan);
+                        let score = 0;
+                        const yearlyStats = calculatePersonYearStats(year, person.id, plan);
+                        const yearlyRate = yearlyStats.workDays > 0 ? yearlyStats.officeDays / yearlyStats.workDays : 0.51;
+                        score += (0.51 - yearlyRate) * 500;
+                        if (getPastConsecutiveHomeDays(person, year, month, day, plan) === 1) {
+                            score -= 150;
+                        }
+                        return { person, score, weekOfficeDays };
+                    }).sort((a, b) => b.score - a.score);
+
+                    const canGoOffice = scoredPeople.filter(p => p.weekOfficeDays < 3);
+                    const shouldNotGoOffice = scoredPeople.filter(p => p.weekOfficeDays >= 3);
+                    
+                    for (const scored of canGoOffice) {
+                        if (neededFromFlexible > 0) {
+                            assignments[scored.person.id] = 'O';
+                            neededFromFlexible--;
+                        } else {
+                            assignments[scored.person.id] = 'E';
+                        }
+                    }
+
+                    for (const scored of shouldNotGoOffice) {
+                         if (neededFromFlexible > 0) {
+                            assignments[scored.person.id] = 'O';
+                            neededFromFlexible--;
+                        } else {
+                            assignments[scored.person.id] = 'E';
+                        }
+                    }
+                }
+
+                if (!plan[day]) plan[day] = {};
+                for (const personId in assignments) {
+                    plan[day][personId] = { status: assignments[personId], manual: false };
+                }
+            }
+            return plan;
+        }
+
+        function evaluatePlan(schedule) {
+            const { currentYear: year, currentMonth: month } = state;
+            const people = getPeople();
+            let totalScore = 0;
+            const weights = { balance: 1.0, grouping: 1.8, weeklyOffice: 4.5, maximizeHome: 1.0 };
+            
+            let groupingScore = 0;
+            let weeklyOfficePenalty = 0;
+
+            people.forEach(person => {
+                let consecutiveHome = 0;
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(year, month, day);
+                    const status = getStatusOnDate(person.id, year, month, day, schedule);
+
+                    if (date.getDay() % 6 !== 0 && !LEAVE_STATUSES.includes(status) && !REQUEST_STATUSES.includes(status) && status !== 'T') {
+                        if (status === 'E') {
+                            consecutiveHome++;
+                        } else { 
+                            if (consecutiveHome === 1) groupingScore -= 5;
+                            if (consecutiveHome === 2) groupingScore += 10;
+                            if (consecutiveHome === 3) groupingScore += 15;
+                            if (consecutiveHome >= 4) groupingScore -= 50;
+                            consecutiveHome = 0;
+                        }
+                    } else {
+                        if (consecutiveHome === 1) groupingScore -= 5;
+                        if (consecutiveHome === 2) groupingScore += 10;
+                        if (consecutiveHome === 3) groupingScore += 15;
+                        if (consecutiveHome >= 4) groupingScore -= 50;
+                        consecutiveHome = 0;
+                    }
+                }
+                if (consecutiveHome === 1) groupingScore -= 5;
+                if (consecutiveHome === 2) groupingScore += 10;
+                if (consecutiveHome === 3) groupingScore += 15;
+                if (consecutiveHome >= 4) groupingScore -= 50;
+
+                const checkedWeeks = new Set();
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(year, month, day);
+                    if (date.getDay() % 6 === 0) continue;
+
+                    const dayOfWeek = date.getDay();
+                    const weekStartDay = day - (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+                    
+                    if (checkedWeeks.has(weekStartDay)) continue;
+                    checkedWeeks.add(weekStartDay);
+                    
+                    const { weekWorkDays, weekHomeDays } = getWeekInfo(person, year, month, day, schedule);
+                    const weekOfficeDays = weekWorkDays - weekHomeDays;
+
+                    if (weekOfficeDays >= 4) {
+                        weeklyOfficePenalty += Math.pow(4, weekOfficeDays - 3) * 20; 
+                    }
+                }
+            });
+
+            totalScore += groupingScore * weights.grouping;
+            totalScore -= weeklyOfficePenalty * weights.weeklyOffice;
+
+            const activePeople = getPeople().filter(p => calculatePersonYearStats(year, p.id, schedule).workDays > 0);
+            if (activePeople.length > 1) {
+                const yearlyRates = activePeople.map(p => {
+                    const stats = calculatePersonYearStats(year, p.id, schedule);
+                    return (stats.officeDays / stats.workDays) * 100;
+                });
+                const mean = yearlyRates.reduce((a, b) => a + b, 0) / yearlyRates.length;
+                const stdDev = Math.sqrt(yearlyRates.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / yearlyRates.length);
+                totalScore += (1 / (1 + stdDev)) * 100 * weights.balance;
+            }
+            
+            let officePenalty = 0;
+            people.forEach(p => {
+                const monthStats = calculatePersonMonthStats(year, month, p.id, schedule);
+                const monthRatio = monthStats.workDays > 0 ? (monthStats.officeDays / monthStats.workDays) * 100 : 0;
+                if(monthRatio > 60) {
+                    officePenalty += (monthRatio - 60);
+                }
+            });
+            totalScore -= officePenalty * weights.maximizeHome;
+            
+            return totalScore;
+        }
+
+        function assignOncallAndDeployToPlan(plan) {
+            const { currentYear: year, currentMonth: month } = state;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                if (date.getDay() % 6 === 0) continue;
+                if (getPeople(false).some(p => getStatusOnDate(p.id, year, month, day, plan) === 'T')) continue;
+                
+                if (!plan[day]) plan[day] = {};
+
+                // Oncall Assignment
+                const oncallData = plan[day].oncall || {};
+                if (!oncallData.manual) {
+                    const activePeopleToday = getActivePeopleForDate(year, month, day);
+                    const homeWorkers = activePeopleToday.filter(p => plan[day]?.[p.id]?.status === 'E');
+                    if (homeWorkers.length > 0) {
+                        homeWorkers.sort((a, b) => {
+                            const statsA = calculatePersonYearStats(year, a.id, plan);
+                            const statsB = calculatePersonYearStats(year, b.id, plan);
+                            return (statsA.oncallCount / (statsA.workDays||1)) - (statsB.oncallCount / (statsB.workDays||1));
+                        });
+                        plan[day].oncall = { personId: homeWorkers[0].id, manual: false };
+                    } else {
+                        delete plan[day].oncall;
+                    }
+                }
+                
+                 const deployData = plan[day].deploy || {};
+                 if (!deployData.manual) {
+                    delete plan[day].deploy;
+                 }
+            }
+            return plan;
+        }
+        
+        async function handleSave() {
+            loadingSpinner.classList.remove('hidden');
+            const { currentYear: year, currentMonth: month } = state;
+            if (!state.data.draftSchedules[year]) state.data.draftSchedules[year] = {};
+            state.data.draftSchedules[year][month] = deepCopy(state.tempScheduleData);
+            await saveDataToFirestore();
+            loadingSpinner.classList.add('hidden');
+            showInfoModal('Başarılı', 'Taslak kaydedildi!');
+        }
+
+        async function handlePublishToggle() {
+            const { currentYear: year, currentMonth: month } = state;
+            const isPublished = state.tempScheduleData.isPublished || false;
+
+            if (isPublished) {
+                showConfirmModal('Yayından Kaldır', 'Bu ayın çizelgesi yayından kaldırılacak. Emin misiniz?', async () => {
+                    loadingSpinner.classList.remove('hidden');
+                    if (state.data.publishedSchedules[year] && state.data.publishedSchedules[year][month]) {
+                        delete state.data.publishedSchedules[year][month];
+                    }
+                    if (state.data.draftSchedules[year] && state.data.draftSchedules[year][month]) {
+                        state.data.draftSchedules[year][month].isPublished = false;
+                    }
+                    await saveDataToFirestore();
+                });
+                return;
+            }
+
+            // Validation before publishing
+            let hasEmptyCells = false;
+            let hasPendingRequests = false;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                if (date.getDay() % 6 === 0) continue;
+                
+                const activePeople = getActivePeopleForDate(year, month, day);
+                activePeople.forEach(person => {
+                    const status = state.tempScheduleData[day]?.[person.id]?.status;
+                    if (!status) {
+                        hasEmptyCells = true;
+                    } else if (REQUEST_STATUSES.includes(status)) {
+                        hasPendingRequests = true;
+                    }
+                });
+                
+                if (!state.tempScheduleData[day]?.oncall?.personId && getActivePeopleForDate(year, month, day).length > 0) {
+                    hasEmptyCells = true;
+                }
+            }
+            
+            let errorMessages = [];
+            if (hasEmptyCells) {
+                errorMessages.push('Çizelgede boş bırakılmış günler bulunmaktadır. Lütfen tüm günleri doldurun.');
+            }
+            if (hasPendingRequests) {
+                errorMessages.push('Onay bekleyen izin talepleri bulunmaktadır. Lütfen talepleri değerlendirin.');
+            }
+
+            if (errorMessages.length > 0) {
+                showInfoModal('Yayınlama Başarısız', errorMessages.join('\n\n'));
+                return;
+            }
+
+            // If validation passes
+            showConfirmModal('Yayınla', 'Bu ayın çizelgesini yayınlamak istiyor musunuz?', async () => {
+                loadingSpinner.classList.remove('hidden');
+                if (!state.data.draftSchedules[year]) state.data.draftSchedules[year] = {};
+                state.tempScheduleData.isPublished = true;
+                state.data.draftSchedules[year][month] = deepCopy(state.tempScheduleData);
+
+                if (!state.data.publishedSchedules[year]) state.data.publishedSchedules[year] = {};
+                state.data.publishedSchedules[year][month] = deepCopy(state.data.draftSchedules[year][month]);
+
+                await saveDataToFirestore();
+            });
+        }
+        
+        async function handleDelete(type) {
+            loadingSpinner.classList.remove('hidden');
+            const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
+            if (type === 'all') {
+                state.tempScheduleData = {};
+            } else {
+                for (let day = 1; day <= daysInMonth; day++) {
+                    if (state.tempScheduleData[day]) {
+                        const peopleForDay = Object.keys(state.tempScheduleData[day]);
+                        peopleForDay.forEach(key => {
+                            const personData = state.tempScheduleData[day][key];
+                             if (getPeople(false).some(p => p.id === key)) { // It's a person entry
+                                if (type === 'except-leaves' && !LEAVE_STATUSES.includes(personData.status)) {
+                                    delete state.tempScheduleData[day][key];
+                                } else if (type === 'auto-only' && !personData.manual) {
+                                    delete state.tempScheduleData[day][key];
+                                }
+                            } else { // It's oncall or deploy
+                                if (type === 'except-leaves') {
+                                    delete state.tempScheduleData[day][key];
+                                } else if (type === 'auto-only' && !personData.manual) {
+                                    delete state.tempScheduleData[day][key];
+                                }
+                            }
+                        });
+                        if (Object.keys(state.tempScheduleData[day]).length === 0) {
+                            delete state.tempScheduleData[day];
+                        }
+                    }
+                }
+            }
+            deleteModalBackdrop.classList.add('hidden');
+            // This is a local change, so save it to draft.
+            const { currentYear: year, currentMonth: month } = state;
+            if (!state.data.draftSchedules[year]) state.data.draftSchedules[year] = {};
+            state.data.draftSchedules[year][month] = deepCopy(state.tempScheduleData);
+            await saveDataToFirestore();
+        }
+
+        function updateUIMode() {
+            const scheduleView = document.getElementById('schedule-view');
+            const isPublished = state.tempScheduleData.isPublished || false;
+            const scheduleExists = state.data.draftSchedules?.[state.currentYear]?.[state.currentMonth] || state.data.publishedSchedules?.[state.currentYear]?.[state.currentMonth];
+
+            const statusDivs = [
+                document.getElementById('publish-status'),
+                document.getElementById('calendar-publish-status')
+            ];
+
+            statusDivs.forEach((div) => {
+                if (!div) return;
+
+                // Reset color classes
+                div.classList.remove('bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+
+                if (isPublished) {
+                    div.textContent = 'Yayında';
+                    div.classList.add('bg-green-100', 'text-green-800');
+                    div.classList.remove('hidden');
+                } else if (scheduleExists) {
+                    div.textContent = 'Yayında Değil';
+                    div.classList.add('bg-red-100', 'text-red-800');
+                    div.classList.remove('hidden');
+                } else {
+                    div.classList.add('hidden');
+                }
+            });
+            
+            publishBtn.classList.toggle('hidden', isPublished);
+            
+            const existingUnpublishBtn = document.getElementById('unpublish-button');
+            if(existingUnpublishBtn) existingUnpublishBtn.remove();
+
+            if (isPublished) {
+                scheduleView.classList.add('published-view');
+                const unpublishBtn = document.createElement('button');
+                unpublishBtn.id = 'unpublish-button';
+                unpublishBtn.className = 'font-semibold text-sm py-1 px-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors shadow-sm flex items-center gap-2';
+                unpublishBtn.innerHTML = `<span>Yayından Kaldır</span>`;
+                unpublishBtn.addEventListener('click', handlePublishToggle);
+                
+                if (publishBtn.parentElement) {
+                    publishBtn.parentElement.insertBefore(unpublishBtn, publishBtn.nextSibling);
+                }
+                
+                [saveBtn, deleteBtn, revertBtn, autoAssignBtn].forEach(btn => btn.disabled = true);
+            } else {
+                scheduleView.classList.remove('published-view');
+                publishBtn.innerHTML = `<span>Yayınla</span>`;
+                [saveBtn, deleteBtn, revertBtn, autoAssignBtn].forEach(btn => btn.disabled = false);
+            }
+        }
+        
+        function formatSummaryDate(dateStr) {
+            const date = new Date(dateStr);
+            const utcDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+            const day = utcDate.getDate();
+            const month = utcDate.getMonth() + 1;
+            const year = utcDate.getFullYear().toString().slice(-2);
+            const weekday = DAY_NAMES[utcDate.getDay()].toLowerCase() + ".";
+            return `${day}.${month}.${year} ${weekday}`;
+        }
+
+        function renderUnderScheduleSummary() {
+            const { currentYear, currentMonth } = state;
+            const visitListEl = document.getElementById('visit-summary-list');
+            const deployListEl = document.getElementById('deploy-summary-list');
+            const people = getPeople(false);
+            visitListEl.innerHTML = '';
+            deployListEl.innerHTML = '';
+
+            const allVisits = state.data.branchVisits || [];
+            const currentMonthVisits = allVisits.filter(v => {
+                if(!v.date) return false;
+                const visitDate = new Date(v.date);
+                return visitDate.getFullYear() === currentYear && visitDate.getMonth() === currentMonth;
+            });
+            currentMonthVisits.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            if (currentMonthVisits.length === 0) {
+                visitListEl.innerHTML = '<p class="text-gray-500">Bu ay için planlanmış ziyaret yok.</p>';
+            } else {
+                currentMonthVisits.forEach(visit => {
+                    const person = people.find(p => p.id === visit.personId);
+                    if (!person) return;
+                    const formattedDate = formatSummaryDate(visit.date);
+                    const p = document.createElement('p');
+                    p.textContent = `${formattedDate} - ${person.name}: ${visit.name || '(Belirtilmemiş)'} (${visit.type})`;
+                    visitListEl.appendChild(p);
+                });
+            }
+
+            const scheduleData = state.tempScheduleData || {};
+            const deployData = state.data.deployData || [];
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            let deployEvents = [];
+            for (let day = 1; day <= daysInMonth; day++) {
+                const deployPersonId = scheduleData[day]?.deploy?.personId;
+                const person = people.find(p => p.id === deployPersonId);
+                if (person) {
+                    const date = new Date(currentYear, currentMonth, day);
+                    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    let eventData = deployData.find(d => d.date === dateStr) || { name: '(Belirtilmemiş)' };
+                    deployEvents.push({ date: date, person: person.name, name: eventData.name });
+                }
+            }
+            deployEvents.sort((a,b) => a.date - b.date);
+
+             if (deployEvents.length === 0) {
+                deployListEl.innerHTML = '<p class="text-gray-500">Bu ay için planlanmış deploy yok.</p>';
+            } else {
+                deployEvents.forEach(event => {
+                    const formattedDate = formatSummaryDate(event.date);
+                    const p = document.createElement('p');
+                    p.textContent = `${formattedDate} - ${event.person}: ${event.name}`;
+                    deployListEl.appendChild(p);
+                });
+            }
+        }
+
+        async function renderBranchVisitTable() {
+            const tableBody = document.querySelector("#branch-visit-table tbody");
+            const allVisits = state.data.branchVisits || [];
+            const people = getPeople();
+
+            allVisits.forEach(v => { if (!v.id) v.id = crypto.randomUUID(); });
+            tableBody.innerHTML = '';
+            
+            const currentMonthVisits = allVisits.filter(v => {
+                if(!v.date) return false;
+                const visitDate = new Date(v.date);
+                return visitDate.getFullYear() === state.currentYear && visitDate.getMonth() === state.currentMonth;
+            });
+            
+            currentMonthVisits.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            currentMonthVisits.forEach(visit => {
+                const tr = document.createElement('tr');
+                if (visit.type === 'Fiziki') tr.classList.add('visit-fiziki');
+                if (visit.type === 'Online') tr.classList.add('visit-online');
+                
+                tr.innerHTML = `
+                    <td class="p-1 border">
+                        <input type="date" value="${visit.date || ''}" data-id="${visit.id}" data-field="date" class="w-full">
+                    </td>
+                    <td class="p-1 border">
+                        <select data-id="${visit.id}" data-field="personId">
+                            <option value="" ${!visit.personId ? 'selected' : ''}>Seçiniz</option>
+                            ${people.map(p => `<option value="${p.id}" ${visit.personId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td class="p-1 border">
+                        <select data-id="${visit.id}" data-field="type">
+                            <option value="" ${!visit.type ? 'selected' : ''}>Seçiniz</option>
+                            <option value="Online" ${visit.type === 'Online' ? 'selected' : ''}>Online</option>
+                            <option value="Fiziki" ${visit.type === 'Fiziki' ? 'selected' : ''}>Fiziki</option>
+                        </select>
+                    </td>
+                    <td class="p-1 border"><input type="text" value="${visit.name || ''}" data-id="${visit.id}" data-field="name"></td>
+                    <td class="p-1 border">
+                        <button data-id="${visit.id}" class="delete-visit-btn bg-red-500 text-white p-2 rounded-md hover:bg-red-600">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            tableBody.querySelectorAll('input, select').forEach(el => {
+                el.addEventListener('input', async (e) => {
+                    loadingSpinner.classList.remove('hidden');
+                    const { id, field } = e.target.dataset;
+                    let visit = state.data.branchVisits.find(v => v.id == id);
+                    if (visit) {
+                      visit[field] = e.target.value;
+                      await saveDataToFirestore();
+                    }
+                });
+            });
+
+            tableBody.querySelectorAll('.delete-visit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                     showConfirmModal('Satırı Sil', 'Bu şube ziyareti kaydını silmek istediğinizden emin misiniz?', async () => {
+                        loadingSpinner.classList.remove('hidden');
+                        state.data.branchVisits = state.data.branchVisits.filter(v => v.id != id);
+                        await saveDataToFirestore();
+                    });
+                });
+            });
+        }
+        
+        async function addNewBranchVisitRow() {
+            loadingSpinner.classList.remove('hidden');
+            if (!Array.isArray(state.data.branchVisits)) {
+                state.data.branchVisits = [];
+            }
+            
+            const date = new Date(state.currentYear, state.currentMonth, 2);
+            const isoDate = date.toISOString().split('T')[0];
+            
+            state.data.branchVisits.push({ 
+                id: crypto.randomUUID(),
+                date: isoDate,
+                name: '', type: '', personId: ''
+            });
+            await saveDataToFirestore();
+        }
+
+        function renderDeployTable() {
+            const { currentYear: year, currentMonth: month } = state;
+            const tableBody = document.querySelector("#deploy-table tbody");
+            tableBody.innerHTML = '';
+            const people = getPeople(false);
+
+            const scheduleData = state.tempScheduleData || {};
+            const deployData = state.data.deployData || [];
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            let deployEvents = [];
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const deployPersonId = scheduleData[day]?.deploy?.personId;
+                const deployPerson = people.find(p => p.id === deployPersonId);
+                if (deployPerson) {
+                    const date = new Date(year, month, day);
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    
+                    let eventData = deployData.find(d => d.date === dateStr);
+                    if (!eventData) {
+                        eventData = { date: dateStr, name: '' };
+                    }
+                    
+                    deployEvents.push({
+                        date: date,
+                        dateStr: dateStr,
+                        person: deployPerson.name,
+                        name: eventData.name
+                    });
+                }
+            }
+
+            deployEvents.sort((a,b) => a.date - b.date);
+
+            deployEvents.forEach(event => {
+                const tr = document.createElement('tr');
+                const dayName = DAY_NAMES[event.date.getDay()];
+                tr.innerHTML = `
+                    <td class="p-2 border text-left">${event.date.toLocaleDateString('tr-TR')} ${dayName}</td>
+                    <td class="p-2 border text-left font-semibold">${event.person}</td>
+                    <td class="p-1 border"><input type="text" value="${event.name}" data-date="${event.dateStr}" data-field="name" class="w-full"></td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            tableBody.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', async e => {
+                    loadingSpinner.classList.remove('hidden');
+                    const { date, field } = e.target.dataset;
+                    let deployInfo = state.data.deployData.find(d => d.date === date);
+                    if (!deployInfo) {
+                        deployInfo = { date: date };
+                        state.data.deployData.push(deployInfo);
+                    }
+                    deployInfo[field] = e.target.value;
+                    await saveDataToFirestore();
+                });
+            });
+        }
+        
+        function populateReportDateFilters() {
+            const startMonthSelect = document.getElementById('start-month-select');
+            const startYearSelect = document.getElementById('start-year-select');
+            const endMonthSelect = document.getElementById('end-month-select');
+            const endYearSelect = document.getElementById('end-year-select');
+
+            const years = Array.from({length: 6}, (_, i) => 2025 + i); // 2025 to 2030
+
+            startYearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+            endYearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+            startMonthSelect.innerHTML = MONTH_NAMES.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+            endMonthSelect.innerHTML = MONTH_NAMES.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+            
+            const defaultYear = new Date().getFullYear();
+            startYearSelect.value = years.includes(defaultYear) ? defaultYear : 2025;
+            startMonthSelect.value = 0; // Ocak
+            endYearSelect.value = years.includes(defaultYear) ? defaultYear : 2025;
+            endYearSelect.value = state.currentMonth;
+        }
+
+        function generateAndRenderReport() {
+            document.querySelectorAll('.report-tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === state.selectedReportTab));
+            document.querySelectorAll('#report-results-container > div').forEach(view => view.classList.add('hidden'));
+
+            const startMonth = parseInt(document.getElementById('start-month-select').value);
+            const startYear = parseInt(document.getElementById('start-year-select').value);
+            const endMonth = parseInt(document.getElementById('end-month-select').value);
+            const endYear = parseInt(document.getElementById('end-year-select').value);
+            const startDate = new Date(startYear, startMonth, 1);
+            const endDate = new Date(endYear, endMonth, 1);
+            
+            if (startDate > endDate) {
+                document.getElementById('report-schedule-view').innerHTML = '<p class="text-center text-red-500 font-semibold">Başlangıç tarihi, bitiş tarihinden sonra olamaz.</p>';
+                 document.getElementById('report-schedule-view').classList.remove('hidden');
+                return;
+            }
+
+            if (state.selectedReportTab === 'schedule') {
+                document.getElementById('report-schedule-view').classList.remove('hidden');
+                renderReportScheduleTable(startDate, endDate);
+            } else if (state.selectedReportTab === 'visit') {
+                document.getElementById('report-visit-view').classList.remove('hidden');
+                renderReportVisitTable(startDate, endDate);
+            } else if (state.selectedReportTab === 'deploy') {
+                document.getElementById('report-deploy-view').classList.remove('hidden');
+                renderReportDeployTable(startDate, endDate);
+            }
+        }
+
+        function renderReportScheduleTable(startDate, endDate) {
+            const people = getPeople();
+            const reportStats = {};
+            people.forEach(p => {
+                reportStats[p.id] = { name: p.name, office: 0, home: 0, leave: 0, workDays: 0, oncall: 0, deploy: 0 };
+            });
+
+            const dataSource = state.currentUser.role === 'admin' ? { ...state.data.publishedSchedules, ...state.data.draftSchedules } : state.data.publishedSchedules;
+
+            for (let y = startDate.getFullYear(); y <= endDate.getFullYear(); y++) {
+                const mStart = (y === startDate.getFullYear()) ? startDate.getMonth() : 0;
+                const mEnd = (y === endDate.getFullYear()) ? endDate.getMonth() : 11;
+                for (let m = mStart; m <= mEnd; m++) {
+                    let monthData;
+                     if (state.currentUser.role === 'admin') {
+                         monthData = state.data.draftSchedules?.[y]?.[m] || state.data.publishedSchedules?.[y]?.[m] || {};
+                    } else {
+                         monthData = state.data.publishedSchedules?.[y]?.[m] || {};
+                    }
+                    const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+                    for (let d = 1; d <= daysInMonth; d++) {
+                        if (new Date(y, m, d).getDay() % 6 === 0) continue;
+                        
+                        const dayData = monthData[d] || {};
+                        people.forEach(person => {
+                             if (!getActivePeopleForDate(y, m, d).some(p => p.id === person.id)) return;
+                             const personStatus = dayData[person.id]?.status;
+                             if(personStatus === 'O') { reportStats[person.id].office++; reportStats[person.id].workDays++; }
+                             else if(personStatus === 'E') { reportStats[person.id].home++; reportStats[person.id].workDays++; }
+                             else if(LEAVE_STATUSES.includes(personStatus)) { reportStats[person.id].leave++; }
+                             
+                             if (dayData.oncall?.personId === person.id) reportStats[person.id].oncall++;
+                             if (dayData.deploy?.personId === person.id) reportStats[person.id].deploy++;
+                        });
+                    }
+                }
+            }
+            
+            let html = `<table class="w-full text-sm report-table">
+                            <thead><tr><th>Kişi</th><th>Ofis</th><th>Ev</th><th>Ofis %</th><th>İzin</th><th>Nöbet</th><th>Deploy</th></tr></thead>
+                            <tbody>`;
+            Object.values(reportStats).forEach(stats => {
+                const officeRatio = stats.workDays > 0 ? Math.round((stats.office / stats.workDays) * 100) : 0;
+                html += `<tr>
+                            <td class="p-2 border text-left font-semibold">${stats.name}</td>
+                            <td class="p-2 border">${stats.office}</td>
+                            <td class="p-2 border">${stats.home}</td>
+                            <td class="p-2 border font-bold">${officeRatio}%</td>
+                            <td class="p-2 border">${stats.leave}</td>
+                            <td class="p-2 border">${stats.oncall}</td>
+                            <td class="p-2 border">${stats.deploy}</td>
+                         </tr>`;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('report-schedule-view').innerHTML = html;
+        }
+
+        function renderReportVisitTable(startDate, endDate) {
+             const allVisits = state.data.branchVisits || [];
+             const people = getPeople();
+             const endOfMonth = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+
+            const reportVisits = allVisits.filter(v => {
+                if (!v.date) return false;
+                const visitDate = new Date(v.date);
+                return visitDate >= startDate && visitDate <= endOfMonth;
+            }).sort((a,b) => new Date(a.date) - new Date(b.date));
+            
+            let html = '';
+            if(reportVisits.length > 0) {
+                 html += `<table class="w-full text-sm report-table">
+                                <thead><tr><th>Tarih</th><th>Kişi</th><th>Tip</th><th>Şube Adı</th></tr></thead>
+                                <tbody>`;
+                reportVisits.forEach(visit => {
+                    const person = people.find(p => p.id === visit.personId);
+                    const date = new Date(visit.date);
+                    html += `<tr>
+                                <td class="p-2 border">${date.toLocaleDateString('tr-TR')}</td>
+                                <td class="p-2 border">${person?.name || ''}</td>
+                                <td class="p-2 border">${visit.type || ''}</td>
+                                <td class="p-2 border text-left">${visit.name || ''}</td>
+                            </tr>`;
+                });
+                html += `</tbody></table>`;
+            } else {
+                html += '<p class="text-center p-4 text-gray-500">Seçilen aralıkta şube ziyareti bulunamadı.</p>';
+            }
+            document.getElementById('report-visit-view').innerHTML = html;
+        }
+
+        function renderReportDeployTable(startDate, endDate) {
+            const people = getPeople(false);
+            const deployData = state.data.deployData || [];
+            const endOfMonth = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+            let allDeployEvents = [];
+            const dataSource = state.currentUser.role === 'admin' ? { ...state.data.publishedSchedules, ...state.data.draftSchedules } : state.data.publishedSchedules;
+
+            for (let y = startDate.getFullYear(); y <= endDate.getFullYear(); y++) {
+                const mStart = (y === startDate.getFullYear()) ? startDate.getMonth() : 0;
+                const mEnd = (y === endDate.getFullYear()) ? endDate.getMonth() : 11;
+
+                for (let m = mStart; m <= mEnd; m++) {
+                    let monthData;
+                     if (state.currentUser.role === 'admin') {
+                         monthData = state.data.draftSchedules?.[y]?.[m] || state.data.publishedSchedules?.[y]?.[m] || {};
+                    } else {
+                         monthData = state.data.publishedSchedules?.[y]?.[m] || {};
+                    }
+                    const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+                    for (let d = 1; d <= daysInMonth; d++) {
+                        const eventDate = new Date(y, m, d);
+                        if (eventDate < startDate || eventDate > endOfMonth) continue;
+
+                        const deployPersonId = monthData[d]?.deploy?.personId;
+                        const person = people.find(p => p.id === deployPersonId);
+                        if(person) {
+                            const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                            let eventData = deployData.find(d => d.date === dateStr) || { name: '(Belirtilmemiş)' };
+                            allDeployEvents.push({ date: eventDate, person: person.name, name: eventData.name });
+                        }
+                    }
+                }
+            }
+
+            allDeployEvents.sort((a,b) => a.date - b.date);
+            
+            let html = '';
+            if (allDeployEvents.length > 0) {
+                html = `<table class="w-full text-sm report-table">
+                            <thead><tr><th>Tarih</th><th>Kişi</th><th>Açıklama</th></tr></thead>
+                            <tbody>`;
+                allDeployEvents.forEach(event => {
+                     html += `<tr>
+                        <td class="p-2 border">${event.date.toLocaleDateString('tr-TR')}</td>
+                        <td class="p-2 border">${event.person}</td>
+                        <td class="p-2 border text-left">${event.name}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+            } else {
+                html = '<p class="text-center p-4 text-gray-500">Seçilen aralıkta deploy kaydı bulunamadı.</p>';
+            }
+             document.getElementById('report-deploy-view').innerHTML = html;
+        }
+
+        function exportScheduleToExcel() {
+            const { currentYear, currentMonth } = state;
+            const monthName = MONTH_NAMES[currentMonth];
+            const fileName = `Cizelge_${monthName}_${currentYear}.xlsx`;
+            const table = document.getElementById('schedule-table');
+            if (!table) return;
+
+            const tableClone = table.cloneNode(true);
+            const rows = tableClone.querySelectorAll('tr');
+            rows.forEach(row => {
+                if (row.cells.length > 2 && !row.querySelector('[colspan="2"]')) {
+                    row.deleteCell(-1);
+                    row.deleteCell(-1);
+                }
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(tableClone);
+            
+            const cols = [];
+            const header = Array.from(tableClone.querySelectorAll('thead th'));
+            cols.push({ wch: 20 }); 
+            for(let i = 1; i < header.length; i++) {
+                cols.push({ wch: 5 }); 
+            }
+            ws['!cols'] = cols;
+            
+            XLSX.utils.book_append_sheet(wb, ws, `${monthName} ${currentYear}`);
+            XLSX.writeFile(wb, fileName);
+        }
+
+        function exportSummaryToExcel() {
+            const { selectedReportTab } = state;
+            let table;
+            let fileName = "Ozet_Raporu.xlsx";
+
+            if (selectedReportTab === 'schedule') {
+                table = document.querySelector('#report-schedule-view .report-table');
+                fileName = "Ozet_Cizelge_Raporu.xlsx";
+            } else if (selectedReportTab === 'visit') {
+                table = document.querySelector('#report-visit-view .report-table');
+                fileName = "Ozet_Ziyaret_Raporu.xlsx";
+            } else if (selectedReportTab === 'deploy') {
+                table = document.querySelector('#report-deploy-view .report-table');
+                fileName = "Ozet_Deploy_Raporu.xlsx";
+            }
+
+            if (!table) {
+                showInfoModal("Hata", "Dışa aktarılacak veri bulunamadı.");
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(table);
+
+            const objectMaxLength = [];
+            const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            data.forEach((row) => {
+                Object.keys(row).forEach((key) => {
+                    const len = row[key] ? String(row[key]).length : 0;
+                    if (!objectMaxLength[key] || objectMaxLength[key] < len) {
+                        objectMaxLength[key] = len;
+                    }
+                });
+            });
+            ws['!cols'] = objectMaxLength.map(w => ({ wch: w + 2 }));
+
+            XLSX.utils.book_append_sheet(wb, ws, "Rapor");
+            XLSX.writeFile(wb, fileName);
+        }
+        
+        // --- INITIALIZATION ---
+        
+        function initializeAppLogic() {
+            if (appInitialized) return;
+            appInitialized = true;
+            console.log("Initializing App Logic (listeners, UI)...");
+            
+            setupEventListeners();
+            populateReportDateFilters();
+            loadDataFromFirestore();
+        }
+
+        async function initFirebase() {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-schedule-app';
+            const firebaseConfigStr = typeof __firebase_config !== 'undefined' 
+                ? __firebase_config 
+                : '{}';
+            const initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+            
+            let firebaseConfig = {};
+            try {
+                firebaseConfig = JSON.parse(firebaseConfigStr);
+            } catch(e) {
+                console.error("Could not parse Firebase config:", e);
+                return;
+            }
+
+            if (!firebaseConfig.apiKey) {
+                console.error("Firebase config is missing or invalid. App will not connect to Firebase.");
+                showInfoModal("Yapılandırma Hatası", "Firebase bağlantı bilgileri eksik. Uygulama veritabanına bağlanamayacak.");
+                return; 
+            }
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                docRef = doc(db, `artifacts/${appId}/public/data/scheduleData`);
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        console.log("Firebase Auth successful for user:", user.uid);
+                        initializeAppLogic();
+                    } else {
+                        console.log("Firebase user signed out.");
+                    }
+                });
+
+                if (initial_auth_token) {
+                    await signInWithCustomToken(auth, initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Firebase initialization error:", error);
+                showInfoModal("Bağlantı Hatası", "Firebase ile bağlantı kurulamadı. Lütfen internet bağlantınızı kontrol edin ve sayfayı yenileyin.");
+            }
+        }
+
+        initFirebase();
+
+    </script>
 </body>
 </html>
+
