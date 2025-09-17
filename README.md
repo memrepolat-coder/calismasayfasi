@@ -1,2 +1,0 @@
-# calismasayfasi
-calismasayfasi
