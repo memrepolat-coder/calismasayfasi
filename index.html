@@ -97,6 +97,10 @@
         .event-lock { color: #b91c1c; font-weight: 600;}
         .event-visit { background-color: #e0f2fe; color: #0c4a6e; }
         .event-deploy { background-color: #f3e8ff; color: #581c87; }
+
+        .row-highlight > td {
+            background-color: #fef9c3 !important;
+        }
     </style>
 </head>
 <body class="antialiased text-gray-800">
@@ -135,7 +139,7 @@
         <main class="hidden">
             <div id="loading-spinner" class="hidden text-center p-8 fixed top-0 left-0 w-full h-full bg-white bg-opacity-80 z-50 flex flex-col justify-center items-center">
                 <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto"></div>
-                <p class="mt-4 text-gray-700 font-semibold text-lg">Yükleniyor...</p>
+                <p id="loading-text" class="mt-4 text-gray-700 font-semibold text-lg">Yükleniyor...</p>
             </div>
 
             <div id="schedule-view">
@@ -433,7 +437,8 @@
             currentUser: null,
             data: {},
             tempScheduleData: {},
-            calendarChanges: {} 
+            calendarChanges: {},
+            highlightedPersonId: null
         };
         
         let confirmCallback = null;
@@ -484,20 +489,31 @@
         
         const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
 
+        function showLoading(message = "Yükleniyor...") {
+            document.getElementById('loading-text').textContent = message;
+            loadingSpinner.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            loadingSpinner.classList.add('hidden');
+        }
+
         async function saveDataToFirestore() {
             if (!docRef) {
                 console.error("Firestore is not initialized.");
                 showInfoModal("Hata", "Veritabanı bağlantısı kurulamadı. Değişiklikler kaydedilemedi.");
                 return;
             }
+            showLoading("Kaydediliyor...");
             try {
-                // Remove temp data before saving
                 const dataToSave = deepCopy(state.data);
                 await setDoc(docRef, dataToSave);
                 console.log("Data saved to Firestore.");
             } catch (error) {
                 console.error("Error saving data to Firestore:", error);
                 showInfoModal("Veritabanı Hatası", "Değişiklikler kaydedilirken bir hata oluştu.");
+            } finally {
+                hideLoading();
             }
         }
 
@@ -544,12 +560,13 @@
                 state.tempScheduleData = deepCopy(draft || published || {}); // Users see drafts too now
             }
             state.calendarChanges = {};
+            state.highlightedPersonId = null; // Reset highlight on month load
             updateUIMode();
             renderAllDynamicViews();
         }
         
         function loadDataFromFirestore() {
-            loadingSpinner.classList.remove('hidden');
+            showLoading("Veriler yükleniyor...");
 
             onSnapshot(docRef, (docSnap) => {
                 if (docSnap.exists()) {
@@ -569,7 +586,7 @@
                         }))
                     };
                     state.data = initialData;
-                    saveDataToFirestore();
+                    saveDataToFirestore(); // Initial save
                 }
                 
                 if (!state.data.draftSchedules) state.data.draftSchedules = {};
@@ -579,7 +596,7 @@
                 if (!state.data.notes) state.data.notes = {};
                 if (!state.data.peopleData) state.data.peopleData = [];
 
-                const savedUser = sessionStorage.getItem('currentUser');
+                const savedUser = localStorage.getItem('currentUser');
                 if (savedUser) {
                     state.currentUser = JSON.parse(savedUser);
                     document.querySelector('nav').classList.remove('hidden');
@@ -589,10 +606,10 @@
                     passwordModalBackdrop.classList.remove('hidden');
                 }
                 
-                loadingSpinner.classList.add('hidden');
+                hideLoading();
             }, (error) => {
                 console.error("Error listening to Firestore document:", error);
-                loadingSpinner.classList.add('hidden');
+                hideLoading();
                 showInfoModal("Veritabanı Hatası", "Veriler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.");
             });
         }
@@ -702,7 +719,7 @@
 
             if (userFound) {
                 state.currentUser = userFound;
-                sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
                 
                 passwordModalBackdrop.classList.add('hidden');
                 usernameInput.value = '';
@@ -720,7 +737,7 @@
         
         function handleLogout() {
             state.currentUser = null;
-            sessionStorage.removeItem('currentUser');
+            localStorage.removeItem('currentUser');
             
             document.querySelector('nav').classList.add('hidden');
             mainEl.classList.add('hidden');
@@ -730,6 +747,7 @@
         
         function switchView(view) {
             state.currentPage = view;
+            state.highlightedPersonId = null; // Reset highlight on view switch
             
             allViews.forEach(v => v.classList.add('hidden'));
             allNavBtns.forEach(b => b.classList.remove('active'));
@@ -803,6 +821,18 @@
         }
         
         function handleTableClick(event) {
+            const nameCell = event.target.closest('tr[data-person-row-id] td:first-child');
+            if (nameCell) {
+                const personId = nameCell.parentElement.dataset.personRowId;
+                if (state.highlightedPersonId === personId) {
+                    state.highlightedPersonId = null; // Toggle off if same row is clicked
+                } else {
+                    state.highlightedPersonId = personId; // Highlight new row
+                }
+                renderTable(); // Re-render to apply/remove the class from state
+                return;
+            }
+
             const cell = event.target.closest('[data-type], .day-header');
             if (!cell || state.currentUser.role !== 'admin' || document.getElementById('schedule-view').classList.contains('published-view')) return;
             
@@ -939,7 +969,6 @@
         }
 
         async function handleCalendarSave() {
-            loadingSpinner.classList.remove('hidden');
             const { currentYear: year, currentMonth: month } = state;
             const personId = state.currentUser.id;
             const isPublished = !!state.data.publishedSchedules?.[year]?.[month];
@@ -1008,7 +1037,6 @@
             await saveDataToFirestore();
             state.calendarChanges = {};
             calendarSaveBtn.classList.add('hidden');
-            loadingSpinner.classList.add('hidden');
         }
         
         function renderPersonalCalendar() {
@@ -1191,7 +1219,6 @@
         }
 
         async function handleSavePerson(e) {
-            loadingSpinner.classList.remove('hidden');
             const tr = e.target.closest('tr');
             const id = tr.dataset.id;
             const person = state.data.peopleData.find(p => p.id === id);
@@ -1203,7 +1230,6 @@
                 person.endDate = tr.querySelector('.end-date-input').value || null;
                 await saveDataToFirestore();
             }
-            loadingSpinner.classList.add('hidden');
         }
 
         function handleDeletePerson(e) {
@@ -1212,7 +1238,6 @@
             const person = state.data.peopleData.find(p => p.id === id);
             if (person) {
                 showConfirmModal('Kişiyi Sil', `'${person.name}' adlı kişiyi silmek istediğinizden emin misiniz?`, async () => {
-                    loadingSpinner.classList.remove('hidden');
                     state.data.peopleData = state.data.peopleData.filter(p => p.id !== id);
                     await saveDataToFirestore();
                 });
@@ -1220,7 +1245,6 @@
         }
         
         async function handleAddNewPerson() {
-            loadingSpinner.classList.remove('hidden');
             const maxOrder = Math.max(0, ...state.data.peopleData.map(p => p.order));
             state.data.peopleData.push({
                 id: crypto.randomUUID(), name: 'Yeni Kişi', password: '',
@@ -1262,7 +1286,8 @@
             });
 
             activePeopleForMonth.forEach(person => {
-                bodyHtml += `<tr><td class="w-32 py-3 px-2 border-b border-gray-200 text-left font-semibold text-gray-700 bg-white">${person.name}</td>`;
+                const highlightClass = state.highlightedPersonId === person.id ? 'row-highlight' : '';
+                bodyHtml += `<tr data-person-row-id="${person.id}" class="${highlightClass}"><td class="w-32 py-3 px-2 border-b border-gray-200 text-left font-semibold text-gray-700 bg-white">${person.name}</td>`;
                 for (let day = 1; day <= daysInMonth; day++) {
                     const date = new Date(year, month, day);
                     const isPast = date < today;
@@ -1559,7 +1584,7 @@
         }
 
         function runMonthlyAutoAssignment() {
-            loadingSpinner.classList.remove('hidden');
+            showLoading("Otomatik atama yapılıyor...");
             
             setTimeout(() => {
                 let bestPlan = null;
@@ -1584,7 +1609,7 @@
                 }
 
                 renderSchedule();
-                loadingSpinner.classList.add('hidden');
+                hideLoading();
             }, 50); 
         }
 
@@ -1849,12 +1874,10 @@
         }
         
         async function handleSave() {
-            loadingSpinner.classList.remove('hidden');
             const { currentYear: year, currentMonth: month } = state;
             if (!state.data.draftSchedules[year]) state.data.draftSchedules[year] = {};
             state.data.draftSchedules[year][month] = deepCopy(state.tempScheduleData);
             await saveDataToFirestore();
-            loadingSpinner.classList.add('hidden');
             showInfoModal('Başarılı', 'Taslak kaydedildi!');
         }
 
@@ -1864,7 +1887,6 @@
 
             if (isPublished) {
                 showConfirmModal('Yayından Kaldır', 'Bu ayın çizelgesi yayından kaldırılacak. Emin misiniz?', async () => {
-                    loadingSpinner.classList.remove('hidden');
                     if (state.data.publishedSchedules[year] && state.data.publishedSchedules[year][month]) {
                         delete state.data.publishedSchedules[year][month];
                     }
@@ -1914,7 +1936,6 @@
 
             // If validation passes
             showConfirmModal('Yayınla', 'Bu ayın çizelgesini yayınlamak istiyor musunuz?', async () => {
-                loadingSpinner.classList.remove('hidden');
                 if (!state.data.draftSchedules[year]) state.data.draftSchedules[year] = {};
                 state.tempScheduleData.isPublished = true;
                 state.data.draftSchedules[year][month] = deepCopy(state.tempScheduleData);
@@ -1927,7 +1948,6 @@
         }
         
         async function handleDelete(type) {
-            loadingSpinner.classList.remove('hidden');
             const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
             if (type === 'all') {
                 state.tempScheduleData = {};
@@ -2135,8 +2155,7 @@
             });
 
             tableBody.querySelectorAll('input, select').forEach(el => {
-                el.addEventListener('input', async (e) => {
-                    loadingSpinner.classList.remove('hidden');
+                el.addEventListener('change', async (e) => {
                     const { id, field } = e.target.dataset;
                     let visit = state.data.branchVisits.find(v => v.id == id);
                     if (visit) {
@@ -2150,7 +2169,6 @@
                 btn.addEventListener('click', (e) => {
                     const id = e.currentTarget.dataset.id;
                      showConfirmModal('Satırı Sil', 'Bu şube ziyareti kaydını silmek istediğinizden emin misiniz?', async () => {
-                        loadingSpinner.classList.remove('hidden');
                         state.data.branchVisits = state.data.branchVisits.filter(v => v.id != id);
                         await saveDataToFirestore();
                     });
@@ -2159,7 +2177,6 @@
         }
         
         async function addNewBranchVisitRow() {
-            loadingSpinner.classList.remove('hidden');
             if (!Array.isArray(state.data.branchVisits)) {
                 state.data.branchVisits = [];
             }
@@ -2222,8 +2239,7 @@
             });
 
             tableBody.querySelectorAll('input').forEach(input => {
-                input.addEventListener('input', async e => {
-                    loadingSpinner.classList.remove('hidden');
+                input.addEventListener('change', async e => {
                     const { date, field } = e.target.dataset;
                     let deployInfo = state.data.deployData.find(d => d.date === date);
                     if (!deployInfo) {
@@ -2289,7 +2305,7 @@
             const people = getPeople();
             const reportStats = {};
             people.forEach(p => {
-                reportStats[p.id] = { name: p.name, office: 0, home: 0, leave: 0, workDays: 0, oncall: 0, deploy: 0 };
+                reportStats[p.id] = { name: p.name, order: p.order, office: 0, home: 0, leave: 0, workDays: 0, oncall: 0, deploy: 0 };
             });
 
             const dataSource = state.currentUser.role === 'admin' ? { ...state.data.publishedSchedules, ...state.data.draftSchedules } : state.data.publishedSchedules;
@@ -2327,7 +2343,7 @@
             let html = `<table class="w-full text-sm report-table">
                             <thead><tr><th>Kişi</th><th>Ofis</th><th>Ev</th><th>Ofis %</th><th>İzin</th><th>Nöbet</th><th>Deploy</th></tr></thead>
                             <tbody>`;
-            Object.values(reportStats).forEach(stats => {
+            Object.values(reportStats).sort((a,b) => a.order - b.order).forEach(stats => {
                 const officeRatio = stats.workDays > 0 ? Math.round((stats.office / stats.workDays) * 100) : 0;
                 html += `<tr>
                             <td class="p-2 border text-left font-semibold">${stats.name}</td>
