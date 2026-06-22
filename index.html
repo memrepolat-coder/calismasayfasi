@@ -5,107 +5,92 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Çalışma Çizelgesi</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .table-container { 
-            width: 100%; 
-            overflow-x: auto; 
-            -webkit-overflow-scrolling: touch;
-        }
-        .no-select {
-            -webkit-user-select: none; /* Safari */
-            -moz-user-select: none; /* Firefox */
-            -ms-user-select: none; /* IE10+/Edge */
-            user-select: none; /* Standard */
-        }
-        table { border-collapse: separate; border-spacing: 0; }
-        th, td { white-space: nowrap; padding: 8px 4px; text-align: center; }
-        th:first-child, td:first-child { position: sticky; left: 0; z-index: 10; background-color: #f8fafc; cursor: pointer; }
+        .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px; }
+        .no-select { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+        
+        /* Tam Kare Hücre ve Excel Çizgi Tasarımı */
+        table { border-collapse: collapse; border-spacing: 0; background-color: white; }
+        th, td { border: 1px solid #e5e7eb; padding: 0; text-align: center; vertical-align: middle; position: relative; }
+        th:first-child, td:first-child { position: sticky; left: 0; z-index: 10; cursor: pointer; border-right: 2px solid #cbd5e1; }
         thead th:first-child { z-index: 20; }
-        .status-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 500; margin: 0 auto; cursor: pointer; transition: all 0.2s ease-in-out; }
-        .status-circle:hover { transform: scale(1.1); }
-        .manual-override { box-shadow: 0 0 0 2px #ef4444; }
-        .main-table-weekend { background-color: #d1d5db; }
-        .office-cell { background-color: #bfdbfe; color: #1e40af; }
-        .office-training-cell { background-color: #c7d2fe; color: #1e40af; }
-        .home-cell { background-color: #a7f3d0; color: #065f46; }
-        .home-training-cell { background-color: #d9f99d; color: #3f6212; }
-        .leave-cell { background-color: #fee2e2; color: #991b1b; }
-        .request-cell { background-color: #fecaca; color: #b91c1c; font-weight: bold; }
-        .inactive-cell { background-color: #e5e7eb; }
-        .past-day { background-color: #f3f4f6; color: #a1a1aa; }
-        .today-header { background-color: #3b82f6 !important; color: white; border-radius: 4px; }
+        
+        .square-cell { width: 38px; height: 38px; min-width: 38px; max-width: 38px; box-sizing: border-box; font-size: 12px; font-weight: 600; cursor: pointer; transition: filter 0.2s ease-in-out; }
+        .square-cell:hover { filter: brightness(0.9); }
+        .person-cell { width: 130px; min-width: 130px; text-align: left; padding: 0 10px; font-size: 14px; font-weight: 600; background-color: #f8fafc; }
+        
+        /* Kilit, Not ve Kullanıcı Seçimi Simgeleri - İnce Siyah Çizgi Eklendi */
+        .lock-indicator { position: absolute; top: 0; right: 0; width: 0; height: 0; border-top: 10px solid #ef4444; border-left: 10px solid transparent; z-index: 5; pointer-events: none; filter: drop-shadow(-1px 1px 0px rgba(0,0,0,0.5)); }
+        .note-indicator { position: absolute; top: 0; left: 0; width: 0; height: 0; border-top: 10px solid #eab308; border-right: 10px solid transparent; z-index: 5; pointer-events: none; filter: drop-shadow(1px 1px 0px rgba(0,0,0,0.5)); }
+        .user-indicator { position: absolute; bottom: 0; right: 0; width: 0; height: 0; border-bottom: 10px solid #a855f7; border-left: 10px solid transparent; z-index: 5; pointer-events: none; filter: drop-shadow(-1px -1px 0px rgba(0,0,0,0.5)); }
+
+        /* Vurgular ve Renkler */
+        .col-today { border-left: 2px solid #3b82f6 !important; border-right: 2px solid #3b82f6 !important; z-index: 15; }
+        .col-today-top { border-top: 2px solid #3b82f6 !important; background-color: #eff6ff !important; color: #1d4ed8 !important; }
+        .col-today-bottom { border-bottom: 2px solid #3b82f6 !important; }
+        
+        .main-table-weekend { background-color: #f3f4f6 !important; }
+        .office-cell { background-color: #bfdbfe !important; color: #1e40af; }
+        .office-training-cell { background-color: #1d4ed8 !important; color: #ffffff !important; }
+        .suzi-cell { background-color: #1e3a8a !important; color: #ffffff !important; }
+        .home-cell { background-color: #a7f3d0 !important; color: #065f46; }
+        .home-training-cell { background-color: #15803d !important; color: #ffffff !important; }
+        .leave-cell { background-color: #dc2626 !important; color: #ffffff !important; }
+        .leave-request-cell { background-color: #fca5a5 !important; color: #991b1b !important; }
+        .sz-cell { background-color: #ea580c !important; color: #ffffff !important; }
+        .sz-request-cell { background-color: #fdba74 !important; color: #9a3412 !important; }
+        .inactive-cell { background-color: #e5e7eb !important; }
         .holiday-cell { background-color: #fef9c3 !important; color: #ca8a04 !important; }
+        
         .custom-modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.2); z-index: 40; }
-        .custom-modal-content { position: fixed; background-color: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); z-index: 50; padding: 8px; min-width: 180px; }
+        .custom-modal-content { position: fixed; background-color: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); z-index: 50; padding: 8px; min-width: 180px; }
         .custom-modal-item { padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
         .custom-modal-item:hover { background-color: #f3f4f6; }
         .modal-color-swatch { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
         
-        #branch-visit-table input, #branch-visit-table select, #deploy-table input, #summary-view select, #people-management-table input {
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            padding: 0.5rem 0.75rem;
-            width: 100%;
-            font-size: 14px;
-            background-color: transparent;
-        }
-        #branch-visit-table th, #deploy-table th, .report-table th, #people-management-table th {
-            background-color: #f3f4f6;
-            font-weight: 600;
-        }
+        #branch-visit-table input, #branch-visit-table select, #deploy-table input, #summary-view select, #people-management-table input, #notes-table-container input, #notes-table-container select { border: 1px solid #d1d5db; border-radius: 0.375rem; padding: 0.5rem 0.75rem; width: 100%; font-size: 14px; background-color: transparent; }
+        #branch-visit-table th, #deploy-table th, .report-table th, #people-management-table th, #notes-table th { background-color: #f3f4f6; font-weight: 600; padding: 6px; }
         .visit-fiziki { background-color: #e0f2fe; }
         .visit-online { background-color: #f0fdf4; }
         
         main.read-only-view { pointer-events: none; }
         main.read-only-view > div { pointer-events: auto; }
-
         #schedule-view.published-view { pointer-events: none; }
         #schedule-view.published-view > div { pointer-events: auto; }
-        
-        #schedule-view.published-view .status-circle, #schedule-view.published-view .day-header, 
+        #schedule-view.published-view .square-cell, #schedule-view.published-view .day-header, 
         #schedule-view.published-view [data-type="oncall"], #schedule-view.published-view [data-type="deploy"],
         #schedule-view.published-view #branch-visit-table input, #schedule-view.published-view #branch-visit-table select, 
         #schedule-view.published-view #branch-visit-table button, #schedule-view.published-view #deploy-table input, 
-        #schedule-view.published-view #deploy-table button, #schedule-view.published-view #add-branch-visit-row {
-             pointer-events: none;
-        }
-        
+        #schedule-view.published-view #deploy-table button, #schedule-view.published-view #add-branch-visit-row { pointer-events: none; }
         #schedule-view.published-view #branch-visit-table input, #schedule-view.published-view #branch-visit-table select, 
-        #schedule-view.published-view #deploy-table input {
-             background-color: #f9fafb;
-        }
+        #schedule-view.published-view #deploy-table input { background-color: #f9fafb; }
         
-        .nav-btn { background-color: white; border: 1px solid #e5e7eb; color: #4b5563; }
+        .nav-btn { background-color: white; border: 1px solid #e5e7eb; color: #4b5563; position: relative; }
         .nav-btn.active { background-color: #3b82f6; color: white; border-color: #3b82f6; }
 
-        /* Calendar Styles */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-        .calendar-header { text-align: center; font-weight: 600; padding-bottom: 4px; color: #4b5563; }
-        .calendar-day { min-height: 120px; border-radius: 8px; position: relative; overflow-y: auto; background-color: #f9fafb; color: #9ca3af; display: flex; flex-direction: column; justify-content: space-between; padding: 4px; cursor: pointer; }
-        .calendar-day.current-month { background-color: #ffffff; color: #111827; border: 1px solid #e5e7eb; }
-        .calendar-day.weekend-day { background-color: #f3f4f6 !important; cursor: default; }
-        .day-number { font-weight: 600; text-align: left; position: relative; z-index: 2; }
-        .day-number.today { color: #ffffff; background-color: #3b82f6; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
-        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.8rem; font-weight: 800; color: rgba(0, 0, 0, 0.08); white-space: normal; pointer-events: none; z-index: 1; text-align: center; line-height: 1; }
-        .event-list { position: relative; z-index: 2; text-align: left; font-size: 13px; font-weight: 500; line-height: 1.4; display: flex; flex-direction: column; gap: 2px; }
-        .event-item { background-color: rgba(255,255,255,0.7); padding: 1px 4px; border-radius: 4px; }
-        .event-note { color: #57534e; }
-        .event-lock { color: #b91c1c; font-weight: 600;}
-        .event-visit { background-color: #e0f2fe; color: #0c4a6e; }
-        .event-deploy { background-color: #f3e8ff; color: #581c87; }
-
-        .row-highlight > td {
-            background-color: #fef9c3 !important;
-        }
+        .row-highlight > td { background-color: #fef9c3 !important; }
+        .missing-icon { font-size: 12px; margin-left: 4px; color: #ef4444; }
     </style>
 </head>
 <body class="antialiased text-gray-800">
+
+    <script>
+        window.ScheduleApp = { modules: {} };
+        function markModuleMissing(moduleName) {
+            console.warn(moduleName + " modülü bulunamadı veya yüklenemedi. Çizelge çalışmaya devam edecek.");
+            window.ScheduleApp.modules[moduleName] = { missing: true };
+            window.addEventListener('DOMContentLoaded', () => {
+                const btn = document.getElementById(moduleName + '-nav-btn');
+                if (btn && !btn.querySelector('.missing-icon')) {
+                    btn.innerHTML += '<span class="missing-icon" title="Modül dosyası (js) yüklenemedi">⚠️</span>';
+                }
+            });
+        }
+    </script>
 
     <div id="app" class="container mx-auto p-4 md:p-6">
         <header class="mb-6 flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -144,18 +129,12 @@
                 <p id="loading-text" class="mt-4 text-gray-700 font-semibold text-lg">Yükleniyor...</p>
             </div>
 
+            <!-- ANA ÇİZELGE GÖRÜNÜMÜ -->
             <div id="schedule-view">
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
                      <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
                         <div id="publish-status" class="hidden font-semibold text-sm py-1 px-3 rounded-lg shadow-sm flex items-center gap-2"></div>
                         <div id="admin-controls" class="flex flex-wrap justify-end items-center gap-2">
-                            <button id="export-schedule-btn" class="font-semibold text-sm py-1 px-3 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors shadow-sm flex items-center gap-2">
-                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.64L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
-                                    <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 1.5H9.5V3z"/>
-                                </svg>
-                                <span>Excele Aktar</span>
-                            </button>
                             <button id="revert-button" class="font-semibold text-sm py-1 px-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors shadow-sm flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"></path><path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"></path></svg>
                                 <span>Geri Al</span>
@@ -168,11 +147,8 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1-1H7.5a1 1 0 0 0-1 1H2zM3 3h2v2H3V3zm3 0h3v2H6V3zm4 0h2v2h-2V3zM3 7h2v2H3V7zm3 0h3v2H6V7zm4 0h2v2h-2V7zm-7 4h2v2H3v-2zm3 0h3v2H6v-2zm4 0h2v2h-2v-2z"></path></svg>
                                 <span>Kaydet</span>
                             </button>
-                            <button id="publish-button" class="font-semibold text-sm py-1 px-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2">
-                            </button>
-                            <button id="auto-assign-button" class="font-semibold text-sm py-1 px-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-sm">
-                                Otomatik Ata
-                            </button>
+                            <button id="publish-button" class="font-semibold text-sm py-1 px-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2"></button>
+                            <button id="auto-assign-button" class="font-semibold text-sm py-1 px-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-sm">Otomatik Ata</button>
                         </div>
                      </div>
                     <div class="table-container no-select">
@@ -227,96 +203,56 @@
                                 </table>
                             </div>
                         </div>
+
+                        <!-- Admin Notlar Alanı -->
+                        <div id="notes-table-container" class="mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-md border">
+                            <h3 class="text-xl font-semibold mb-4">Aylık Notlar (Yönetici)</h3>
+                            <div class="flex flex-wrap gap-4 mb-4 items-end">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1">Tarih (Opsiyonel)</label>
+                                    <input type="date" id="general-note-date" class="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-40">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1">Kişi (Opsiyonel)</label>
+                                    <select id="general-note-person" class="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-40">
+                                        <option value="">Seçiniz</option>
+                                    </select>
+                                </div>
+                                <div class="flex-grow">
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1">Not</label>
+                                    <input type="text" id="general-note-text" placeholder="Not içeriği..." class="border border-gray-300 rounded-md px-3 py-2 text-sm w-full">
+                                </div>
+                                <button id="add-general-note-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors shadow-sm">Ekle</button>
+                            </div>
+                            <div class="table-container">
+                                <table class="w-full text-sm" id="notes-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="p-2 border w-[120px]">Tarih</th>
+                                            <th class="p-2 border w-[150px]">Kişi</th>
+                                            <th class="p-2 border w-auto text-left">Not</th>
+                                            <th class="p-2 border w-[60px]">Sil</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
                      </div>
                 </div>
             </div>
             
             <div id="summary-view" class="hidden">
-                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
-                     <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 border-b pb-4">
-                        <div class="flex items-center gap-4">
-                            <h3 class="text-xl font-semibold">Özet Rapor</h3>
-                            <button id="export-summary-btn" class="hidden font-semibold text-sm py-1 px-3 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors shadow-sm flex items-center gap-2">
-                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.64L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
-                                    <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 1.5H9.5V3z"/>
-                                </svg>
-                                <span>Excele Aktar</span>
-                            </button>
-                        </div>
-                        <div class="flex flex-wrap items-center justify-center gap-3">
-                            <div class="flex items-center gap-2">
-                                <label for="start-month-select" class="text-sm font-medium">Başlangıç:</label>
-                                <select id="start-month-select"></select>
-                                <select id="start-year-select"></select>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <label for="end-month-select" class="text-sm font-medium">Bitiş:</label>
-                                <select id="end-month-select"></select>
-                                <select id="end-year-select"></select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="report-sub-nav" class="border-b border-gray-200 flex items-center gap-2">
-                        <button data-tab="schedule" class="report-tab-btn nav-btn active py-2 px-3 text-sm font-semibold rounded-t-lg">Çizelge</button>
-                        <button data-tab="visit" class="report-tab-btn nav-btn py-2 px-3 text-sm font-semibold rounded-t-lg">Şube Ziyaret</button>
-                        <button data-tab="deploy" class="report-tab-btn nav-btn py-2 px-3 text-sm font-semibold rounded-t-lg">Deploy</button>
-                    </div>
-
-                    <div id="report-results-container" class="mt-4">
-                         <div id="report-schedule-view" class="table-container"></div>
-                         <div id="report-visit-view" class="table-container hidden"></div>
-                         <div id="report-deploy-view" class="table-container hidden"></div>
-                    </div>
-                 </div>
+                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md" id="summary-module-container"></div>
             </div>
 
             <div id="calendar-view" class="hidden">
-                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
-                   <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-                        <div class="flex items-center gap-4">
-                            <h3 id="calendar-title" class="text-lg font-semibold text-gray-800"></h3>
-                            <div id="calendar-publish-status" class="hidden font-semibold text-sm py-1 px-3 rounded-lg shadow-sm"></div>
-                        </div>
-                       <div class="flex items-center gap-4">
-                            <div id="person-selector-container">
-                                <select id="person-selector" class="border border-gray-300 rounded-lg px-4 py-2 text-base font-medium w-full sm:w-auto"></select>
-                            </div>
-                            <button id="calendar-save-btn" class="hidden font-semibold text-sm py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm">
-                                Değişiklikleri Kaydet
-                            </button>
-                       </div>
-                  </div>
-                   <div id="calendar-container"></div>
-                   <div id="calendar-summaries" class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm"></div>
-               </div>
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md" id="calendar-module-container"></div>
            </div>
 
            <div id="settings-view" class="hidden">
-            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
-                <h3 class="text-lg font-semibold mb-4">Kişi Yönetimi</h3>
-                 <div class="table-container">
-                    <table id="people-management-table" class="w-full text-sm">
-                       <thead>
-                            <tr class="bg-gray-100">
-                                <th class="p-2 border w-16">Sıra</th>
-                                <th class="p-2 border">İsim</th>
-                                <th class="p-2 border">Şifre</th>
-                                <th class="p-2 border">İşe Başlama</th>
-                                <th class="p-2 border">İşten Ayrılma</th>
-                                <th class="p-2 border w-24">Eylemler</th>
-                            </tr>
-                       </thead>
-                       <tbody></tbody>
-                    </table>
-                 </div>
-                 <div class="mt-4 flex justify-end">
-                    <button id="add-person-btn" class="font-semibold text-sm py-2 px-4 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors shadow-sm">
-                        Yeni Kişi Ekle
-                    </button>
-                </div>
-            </div>
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md" id="settings-module-container"></div>
         </div>
             
         </main>
@@ -326,86 +262,90 @@
     <div id="note-modal-backdrop" class="custom-modal-backdrop hidden">
         <div id="note-modal" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 60;">
             <h3 id="note-modal-title" class="text-lg font-semibold mb-4">Not Ekle/Düzenle</h3>
-            <textarea id="note-input" class="w-full border border-gray-300 rounded-md p-2" rows="4"></textarea>
+            <textarea id="note-input" class="w-full border border-gray-300 rounded-md p-2 text-sm" rows="4"></textarea>
             <div class="mt-6 flex justify-end gap-3">
-                <button id="note-cancel-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">İptal</button>
-                <button id="note-save-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">Kaydet</button>
+                <button id="note-cancel-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 text-sm transition-colors">İptal</button>
+                <button id="note-save-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 text-sm transition-colors">Kaydet</button>
             </div>
         </div>
     </div>
+    
     <div id="password-modal-backdrop" class="custom-modal-backdrop">
         <div id="password-modal" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 60;">
             <h3 class="text-lg font-semibold mb-4">Giriş Yap</h3>
             <div class="space-y-4">
                  <div>
                     <label for="username-input" class="block text-sm font-medium text-gray-700">Kullanıcı Adı</label>
-                    <input type="text" id="username-input" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Kullanıcı Adı...">
+                    <input type="text" id="username-input" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Kullanıcı Adı...">
                 </div>
                 <div>
                     <label for="password-input" class="block text-sm font-medium text-gray-700">Şifre</label>
-                    <input type="password" id="password-input" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Şifre...">
+                    <input type="password" id="password-input" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Şifre...">
                 </div>
             </div>
             <p id="password-error" class="text-red-500 text-sm mt-2 hidden">Hatalı kullanıcı adı veya şifre.</p>
             <div class="mt-6 flex justify-end gap-3">
-                <button id="password-submit-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">Giriş Yap</button>
+                <button id="password-submit-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 text-sm transition-colors">Giriş Yap</button>
             </div>
         </div>
     </div>
+    
     <div id="custom-modal-backdrop" class="custom-modal-backdrop hidden">
         <div id="custom-modal-content" class="custom-modal-content"></div>
     </div>
-     <div id="confirm-modal-backdrop" class="custom-modal-backdrop hidden">
-        <div id="confirm-modal" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 60;">
+    
+    <div id="confirm-modal-backdrop" class="custom-modal-backdrop hidden" style="z-index: 70;">
+        <div id="confirm-modal" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 71;">
             <h3 id="confirm-modal-title" class="text-lg font-semibold mb-4">Emin misiniz?</h3>
-            <p id="confirm-modal-text" class="text-gray-600 mb-4">Bu işlem geri alınamaz.</p>
+            <p id="confirm-modal-text" class="text-gray-600 text-sm mb-4">Bu işlem geri alınamaz.</p>
             <div class="mt-6 flex justify-end gap-3">
-                <button id="confirm-cancel-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">İptal</button>
-                <button id="confirm-ok-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">Onayla</button>
+                <button id="confirm-cancel-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 text-sm transition-colors">İptal</button>
+                <button id="confirm-ok-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 text-sm transition-colors">Onayla</button>
             </div>
         </div>
     </div>
-    <div id="info-modal-backdrop" class="custom-modal-backdrop hidden">
-        <div id="info-modal" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 60;">
+    
+    <div id="info-modal-backdrop" class="custom-modal-backdrop hidden" style="z-index: 70;">
+        <div id="info-modal" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 71;">
             <h3 id="info-modal-title" class="text-lg font-semibold mb-4">Uyarı</h3>
-            <div id="info-modal-text" class="text-gray-600 mb-4 whitespace-pre-line"></div>
+            <div id="info-modal-text" class="text-gray-600 text-sm mb-4 whitespace-pre-line"></div>
             <div class="mt-6 flex justify-end gap-3">
-                <button id="info-ok-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">Tamam</button>
+                <button id="info-ok-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 text-sm transition-colors">Tamam</button>
             </div>
         </div>
     </div>
+    
     <div id="delete-modal-backdrop" class="custom-modal-backdrop hidden">
         <div id="delete-modal" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 60;">
             <h3 id="delete-modal-title" class="text-lg font-semibold mb-4">Bu Ayın Çizelgesini Sil</h3>
-            <p id="delete-modal-text" class="text-gray-600 mb-4">Hangi verileri silmek istediğinizi seçin. Değişikliğin kalıcı olması için ardından 'Kaydet' veya 'Yayınla' butonuna basmanız gerekir.</p>
+            <p id="delete-modal-text" class="text-gray-600 text-sm mb-4">Hangi verileri silmek istediğinizi seçin. Değişikliğin kalıcı olması için ardından 'Kaydet' veya 'Yayınla' butonuna basmanız gerekir.</p>
             <div class="mt-4 space-y-3">
-                <button id="delete-all-btn" class="w-full text-left bg-red-100 text-red-800 font-semibold py-2 px-4 rounded-lg hover:bg-red-200 transition-colors">Hepsini Sil</button>
-                <button id="delete-except-leaves-btn" class="w-full text-left bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">İzinler Hariç Sil</button>
-                <button id="delete-auto-btn" class="w-full text-left bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">Sadece Otomatik Atamaları Sil</button>
+                <button id="delete-all-btn" class="w-full text-left bg-red-100 text-red-800 font-semibold py-2 px-4 rounded-lg hover:bg-red-200 text-sm transition-colors">Hepsini Sil</button>
+                <button id="delete-except-leaves-btn" class="w-full text-left bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200 text-sm transition-colors">İzinler Hariç Sil</button>
+                <button id="delete-except-user-btn" class="w-full text-left bg-purple-100 text-purple-800 font-semibold py-2 px-4 rounded-lg hover:bg-purple-200 text-sm transition-colors">Kullanıcı Seçimleri Hariç Sil</button>
+                <button id="delete-auto-btn" class="w-full text-left bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200 text-sm transition-colors">Sadece Otomatik Atamaları Sil</button>
             </div>
             <div class="mt-6 flex justify-end">
-                <button id="delete-cancel-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">İptal</button>
+                <button id="delete-cancel-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 text-sm transition-colors">İptal</button>
             </div>
         </div>
     </div>
 
-    <!-- Firebase and Local App Logic -->
+    <!-- Firebase and Main App Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE ---
         const firebaseConfig = {
-          apiKey: "AIzaSyAPl9f5stV3Tpr-3U-Sxi8y_iQLkgdzwsM",
-          authDomain: "aylik-calisma-planlamasi.firebaseapp.com",
-          projectId: "aylik-calisma-planlamasi",
-          storageBucket: "aylik-calisma-planlamasi.firebasestorage.app",
-          messagingSenderId: "968953074293",
-          appId: "1:968953074293:web:a23238e277329aaa071e3c",
-          measurementId: "G-Y9MWRZTEQ9"
-        };
-        // ----------------------------------------------------
+  apiKey: "AIzaSyAPl9f5stV3Tpr-3U-Sxi8y_iQLkgdzwsM",
+  authDomain: "aylik-calisma-planlamasi.firebaseapp.com",
+  projectId: "aylik-calisma-planlamasi",
+  storageBucket: "aylik-calisma-planlamasi.firebasestorage.app",
+  messagingSenderId: "968953074293",
+  appId: "1:968953074293:web:a23238e277329aaa071e3c",
+  measurementId: "G-Y9MWRZTEQ9"
+};
 
         const config = {
             START_YEAR: 2025,
@@ -417,18 +357,19 @@
         
         const STATUSES = {
             'O':    { label: 'Ofis (O)',             short: 'O',      class: 'office-cell',  color: '#bfdbfe' },
-            'EgiO': { label: 'Eğitim Ofis (Eği.O)',  short: 'Eği.O',  class: 'office-training-cell',  color: '#c7d2fe' },
+            'EgiO': { label: 'Eğitim Ofis (Eği.O)',  short: 'Eği.O',  class: 'office-training-cell', color: '#1d4ed8' },
+            'suzi': { label: 'Şube Ziyaret (Şu.Zi.)',short: 'Şu.Zi.', class: 'suzi-cell', color: '#1e3a8a' },
             'E':    { label: 'Ev (E)',               short: 'E',      class: 'home-cell',    color: '#a7f3d0' },
-            'EgiE': { label: 'Eğitim Ev (Eği.E)',    short: 'Eği.E',  class: 'home-training-cell',    color: '#d9f99d' },
-            'i':    { label: 'İzin (İ)',             short: 'İ',      class: 'leave-cell',   color: '#fee2e2' },
-            'iok':  { label: 'İzin Onaylı (i✓)',     short: 'i✓',     class: 'leave-cell',   color: '#fee2e2' },
-            'SZ':   { label: 'Serbest Zaman (SZ)',   short: 'SZ',     class: 'leave-cell',   color: '#fee2e2' },
+            'EgiE': { label: 'Eğitim Ev (Eği.E)',    short: 'Eği.E',  class: 'home-training-cell', color: '#15803d' },
+            'i':    { label: 'İzin (İ)',             short: 'İ',      class: 'leave-cell', color: '#dc2626' },
+            'iok':  { label: 'İzin Onaylı (i✓)',     short: 'İ<span style="color:#4ade80; margin-left:1px;">✓</span>', class: 'leave-cell', color: '#dc2626' },
+            'SZ':   { label: 'SZ Onaylı (SZ✓)',      short: 'SZ<span style="color:#4ade80; margin-left:1px;">✓</span>', class: 'sz-cell', color: '#ea580c' },
             'T':    { label: 'Tatil',                short: 'T',      class: 'holiday-cell', color: '#fef9c3' },
-            'izt':  { label: 'İzin Talebi',          short: 'İz.T',   class: 'request-cell', color: '#fecaca' },
-            'szt':  { label: 'Sz.Talebi',            short: 'Sz.T',   class: 'request-cell', color: '#fecaca' },
+            'izt':  { label: 'İzin Talebi (İz.T)',   short: 'İz.T',   class: 'leave-request-cell', color: '#fca5a5' },
+            'szt':  { label: 'Sz.Talebi (Sz.T)',     short: 'Sz.T',   class: 'sz-request-cell', color: '#fdba74' }
         };
 
-        const OFFICE_LIKE_STATUSES = ['O', 'EgiO'];
+        const OFFICE_LIKE_STATUSES = ['O', 'EgiO', 'suzi'];
         const HOME_LIKE_STATUSES = ['E', 'EgiE'];
         const WORK_LIKE_STATUSES = [...OFFICE_LIKE_STATUSES, ...HOME_LIKE_STATUSES];
         const LEAVE_STATUSES = ['i', 'iok', 'SZ'];
@@ -452,17 +393,15 @@
         let confirmCallback = null;
         let noteModalCallback = null;
         let appInitialized = false;
-
         let db, auth, docRef;
+        let isInitialLoad = true; 
 
-        // --- Element Selectors ---
         const mainEl = document.querySelector('main');
         const logoutBtn = document.getElementById('logout-btn');
         const userInfoDiv = document.getElementById('user-info');
         const userNameSpan = document.getElementById('user-name');
         const passwordModalBackdrop = document.getElementById('password-modal-backdrop');
         const infoModalBackdrop = document.getElementById('info-modal-backdrop');
-
         const autoAssignBtn = document.getElementById('auto-assign-button');
         const saveBtn = document.getElementById('save-button');
         const publishBtn = document.getElementById('publish-button');
@@ -470,7 +409,6 @@
         const deleteBtn = document.getElementById('delete-button');
         const adminControls = document.getElementById('admin-controls');
         const monthEventsSummary = document.getElementById('month-events-summary');
-
         const tableEl = document.getElementById('schedule-table');
         const backdrop = document.getElementById('custom-modal-backdrop');
         const modalContent = document.getElementById('custom-modal-content');
@@ -483,18 +421,12 @@
         const deleteModalBackdrop = document.getElementById('delete-modal-backdrop');
         const publishStatusDiv = document.getElementById('publish-status');
         const addBranchVisitRowBtn = document.getElementById('add-branch-visit-row');
-        
-        // Navigation & Views
         const allNavBtns = document.querySelectorAll('#main-nav .nav-btn');
         const allViews = document.querySelectorAll('main > div[id$="-view"]');
         const settingsNavBtn = document.getElementById('settings-nav-btn');
-        const personSelector = document.getElementById('person-selector');
-        const personSelectorContainer = document.getElementById('person-selector-container');
         const extraDetailsContainer = document.getElementById('extra-details-container');
-        const calendarContainer = document.getElementById('calendar-container');
-        const calendarSaveBtn = document.getElementById('calendar-save-btn');
         const noteModalBackdrop = document.getElementById('note-modal-backdrop');
-        
+
         const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
 
         function showLoading(message = "Yükleniyor...") {
@@ -508,17 +440,14 @@
 
         async function saveDataToFirestore() {
             if (!docRef) {
-                console.error("Firestore is not initialized.");
                 showInfoModal("Hata", "Veritabanı bağlantısı kurulamadı. Değişiklikler kaydedilemedi.");
                 return;
             }
             showLoading("Kaydediliyor...");
             try {
-                const dataToSave = deepCopy(state.data);
-                await setDoc(docRef, dataToSave);
-                console.log("Data saved to Firestore.");
+                await setDoc(docRef, deepCopy(state.data));
             } catch (error) {
-                console.error("Error saving data to Firestore:", error);
+                console.error("Error saving data:", error);
                 showInfoModal("Veritabanı Hatası", "Değişiklikler kaydedilirken bir hata oluştu.");
             } finally {
                 hideLoading();
@@ -527,33 +456,17 @@
 
         function getPeople(sorted = true) {
             const people = state.data.peopleData || [];
-            if (sorted) {
-                return [...people].sort((a, b) => a.order - b.order);
-            }
-            return people;
+            return sorted ? [...people].sort((a, b) => a.order - b.order) : people;
         }
 
         function getActivePeopleForDate(year, month, day) {
             const people = getPeople();
-            const date = new Date(year, month, day);
-            date.setHours(0,0,0,0);
+            const date = new Date(year, month, day, 0, 0, 0, 0);
 
             return people.filter(p => {
-                let startDate = null;
-                if (p.startDate) {
-                    const parts = p.startDate.split('-');
-                    startDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                }
-
-                let endDate = null;
-                if (p.endDate) {
-                    const parts = p.endDate.split('-');
-                    endDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                }
-
-                const started = !startDate || date.getTime() >= startDate.getTime();
-                const notEnded = !endDate || date.getTime() <= endDate.getTime();
-                return started && notEnded;
+                let startDate = p.startDate ? new Date(...p.startDate.split('-').map((v, i) => i === 1 ? v - 1 : v)) : null;
+                let endDate = p.endDate ? new Date(...p.endDate.split('-').map((v, i) => i === 1 ? v - 1 : v)) : null;
+                return (!startDate || date >= startDate) && (!endDate || date <= endDate);
             });
         }
         
@@ -562,13 +475,9 @@
             const published = state.data.publishedSchedules?.[year]?.[month];
             const draft = state.data.draftSchedules?.[year]?.[month];
             
-            if (state.currentUser.role === 'admin') {
-                state.tempScheduleData = deepCopy(draft || published || {});
-            } else {
-                state.tempScheduleData = deepCopy(draft || published || {}); // Users see drafts too now
-            }
+            state.tempScheduleData = deepCopy(draft || published || {});
             state.calendarChanges = {};
-            state.highlightedPersonId = null; // Reset highlight on month load
+            state.highlightedPersonId = null;
             updateUIMode();
             renderAllDynamicViews();
         }
@@ -579,130 +488,172 @@
             onSnapshot(docRef, (docSnap) => {
                 if (docSnap.exists()) {
                     state.data = docSnap.data();
-                    console.log("Data loaded from Firestore.");
                 } else {
-                    console.log("No document found in Firestore. Creating a new one with initial data.");
-                    const initialData = {
-                        draftSchedules: {},
-                        publishedSchedules: {},
-                        branchVisits: [],
-                        deployData: [],
-                        notes: {},
+                    state.data = {
+                        draftSchedules: {}, publishedSchedules: {}, branchVisits: [], deployData: [], 
+                        notes: {}, generalNotes: [], 
+                        adminNotes: {}, adminGeneralNotes: [], 
                         peopleData: config.INITIAL_PEOPLE.map((name, index) => ({
-                            id: crypto.randomUUID(), name: name, password: '', order: index + 1,
-                            startDate: null, endDate: null
+                            id: crypto.randomUUID(), name, password: '', order: index + 1, startDate: null, endDate: null
                         }))
                     };
-                    state.data = initialData;
-                    saveDataToFirestore(); // Initial save
+                    saveDataToFirestore();
                 }
                 
-                if (!state.data.draftSchedules) state.data.draftSchedules = {};
-                if (!state.data.publishedSchedules) state.data.publishedSchedules = {};
-                if (!state.data.branchVisits) state.data.branchVisits = [];
-                if (!state.data.deployData) state.data.deployData = [];
-                if (!state.data.notes) state.data.notes = {};
-                if (!state.data.peopleData) state.data.peopleData = [];
+                ['draftSchedules', 'publishedSchedules', 'branchVisits', 'deployData', 'notes', 'generalNotes', 'adminNotes', 'adminGeneralNotes', 'peopleData'].forEach(key => {
+                    if (!state.data[key]) state.data[key] = key === 'peopleData' ? [] : (key.includes('Data') || key.includes('Visits') || key.includes('eneralNotes') ? [] : {});
+                });
 
-                const savedUser = localStorage.getItem('currentUser');
-                if (savedUser) {
-                    state.currentUser = JSON.parse(savedUser);
-                    document.querySelector('nav').classList.remove('hidden');
-                    mainEl.classList.remove('hidden');
-                    updateUIForAuth();
+                if (isInitialLoad) {
+                    const savedUser = localStorage.getItem('currentUser');
+                    if (savedUser) {
+                        state.currentUser = JSON.parse(savedUser);
+                        document.querySelector('nav').classList.remove('hidden');
+                        mainEl.classList.remove('hidden');
+                        updateUIForAuth(); 
+                    } else {
+                        passwordModalBackdrop.classList.remove('hidden');
+                    }
+                    isInitialLoad = false;
                 } else {
-                    passwordModalBackdrop.classList.remove('hidden');
+                    if (state.currentUser && state.currentUser.role === 'admin') {
+                        renderNotesTable();
+                        renderBranchVisitTable();
+                        renderDeployTable();
+                    }
+                    renderSchedule(); 
+                    
+                    ['summary', 'calendar', 'settings'].forEach(modName => {
+                        const mod = window.ScheduleApp.modules[modName];
+                        if (mod && !mod.missing && typeof mod.render === 'function') {
+                            mod.render();
+                        }
+                    });
                 }
                 
                 hideLoading();
             }, (error) => {
-                console.error("Error listening to Firestore document:", error);
+                console.error("Firestore Error:", error);
                 hideLoading();
-                showInfoModal("Veritabanı Hatası", "Veriler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.");
+                showInfoModal("Veritabanı Hatası", "Veriler yüklenirken bir hata oluştu.");
             });
         }
         
         function setupEventListeners() {
-            // Month Navigation
             prevMonthBtn.addEventListener('click', () => navigateMonth(-1));
             nextMonthBtn.addEventListener('click', () => navigateMonth(1));
             
-            // Main Navigation
             allNavBtns.forEach(btn => btn.addEventListener('click', (e) => switchView(e.currentTarget.id.replace('-nav-btn', ''))));
             
-            // Admin Controls
             autoAssignBtn.addEventListener('click', () => showConfirmModal('Otomatik Atama Onayı', 'Mevcut kaydedilmemiş değişiklikler üzerine yazılacak. Emin misiniz?', runMonthlyAutoAssignment));
             saveBtn.addEventListener('click', handleSave);
             publishBtn.addEventListener('click', handlePublishToggle);
             revertBtn.addEventListener('click', () => showConfirmModal('Değişiklikleri Geri Al', 'Kaydedilmemiş tüm değişiklikler iptal edilecek. Emin misiniz?', loadMonthData));
             deleteBtn.addEventListener('click', () => deleteModalBackdrop.classList.remove('hidden'));
-            document.getElementById('export-schedule-btn').addEventListener('click', exportScheduleToExcel);
-            document.getElementById('export-summary-btn').addEventListener('click', exportSummaryToExcel);
 
-            // Table & Modals
             tableEl.addEventListener('click', handleTableClick);
             backdrop.addEventListener('click', () => backdrop.classList.add('hidden'));
             confirmCancelBtn.addEventListener('click', () => confirmModalBackdrop.classList.add('hidden'));
             confirmOkBtn.addEventListener('click', () => { if(confirmCallback) confirmCallback(); confirmModalBackdrop.classList.add('hidden'); });
+            
             noteModalBackdrop.querySelector('#note-cancel-btn').addEventListener('click', () => noteModalBackdrop.classList.add('hidden'));
             noteModalBackdrop.querySelector('#note-save-btn').addEventListener('click', () => { if(noteModalCallback) noteModalCallback(); });
             document.getElementById('info-ok-btn').addEventListener('click', () => infoModalBackdrop.classList.add('hidden'));
 
-            // Delete Modal
             document.getElementById('delete-cancel-btn').addEventListener('click', () => deleteModalBackdrop.classList.add('hidden'));
-            document.getElementById('delete-all-btn').addEventListener('click', () => handleDelete('all'));
-            document.getElementById('delete-except-leaves-btn').addEventListener('click', () => handleDelete('except-leaves'));
-            document.getElementById('delete-auto-btn').addEventListener('click', () => handleDelete('auto-only'));
             
-            // Details Tables
+            // Tüm silme butonlarını güvenli Wrapper'a yönlendir
+            document.getElementById('delete-all-btn').addEventListener('click', () => confirmAndDelete('all'));
+            document.getElementById('delete-except-leaves-btn').addEventListener('click', () => confirmAndDelete('except-leaves'));
+            document.getElementById('delete-except-user-btn').addEventListener('click', () => confirmAndDelete('except-user'));
+            document.getElementById('delete-auto-btn').addEventListener('click', () => confirmAndDelete('auto-only'));
+            
             addBranchVisitRowBtn.addEventListener('click', addNewBranchVisitRow);
 
-            // Report Listeners
-            document.querySelectorAll('#summary-view select').forEach(el => el.addEventListener('change', generateAndRenderReport));
-            document.getElementById('report-sub-nav').addEventListener('click', e => {
-                if (e.target.matches('.report-tab-btn')) {
-                    state.selectedReportTab = e.target.dataset.tab;
-                    generateAndRenderReport();
-                }
-            });
-
-            // Auth Listeners
             logoutBtn.addEventListener('click', handleLogout);
             document.getElementById('password-submit-btn').addEventListener('click', handleLoginSubmit);
 
-            // Calendar
-            personSelector.addEventListener('change', renderPersonalCalendar);
-            calendarContainer.addEventListener('click', handleCalendarClick);
-            calendarSaveBtn.addEventListener('click', handleCalendarSave);
+            const addGenNoteBtn = document.getElementById('add-general-note-btn');
+            if (addGenNoteBtn) addGenNoteBtn.addEventListener('click', handleAddGeneralNote);
+        }
 
-            // Settings
-            document.getElementById('add-person-btn').addEventListener('click', handleAddNewPerson);
+        function confirmAndDelete(type) {
+            const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
+            let hasUserSelections = false;
+            for (let day = 1; day <= daysInMonth; day++) {
+                if (state.tempScheduleData[day]) {
+                    Object.keys(state.tempScheduleData[day]).forEach(key => {
+                        if (state.tempScheduleData[day][key].isUserSelected) hasUserSelections = true;
+                    });
+                }
+            }
+            if (hasUserSelections && type !== 'except-user') {
+                showConfirmModal('Uyarı', 'Bu ayda kullanıcılar tarafından yapılmış seçimler/talepler var. Silme işlemine devam etmek istiyor musunuz?', () => handleDelete(type));
+            } else {
+                handleDelete(type);
+            }
+        }
+
+        async function handleAddGeneralNote() {
+            const dateVal = document.getElementById('general-note-date').value;
+            const personId = document.getElementById('general-note-person').value;
+            const text = document.getElementById('general-note-text').value.trim();
+            
+            if (!text) return;
+
+            const { currentYear: year, currentMonth: month } = state;
+
+            if (dateVal && personId) {
+                const [y, m, d] = dateVal.split('-').map(Number);
+                if (y === year && (m-1) === month) {
+                    if (!state.data.adminNotes) state.data.adminNotes = {};
+                    if (!state.data.adminNotes[y]) state.data.adminNotes[y] = {};
+                    if (!state.data.adminNotes[y][m-1]) state.data.adminNotes[y][m-1] = {};
+                    if (!state.data.adminNotes[y][m-1][d]) state.data.adminNotes[y][m-1][d] = {};
+                    state.data.adminNotes[y][m-1][d][personId] = text;
+                } else {
+                    showInfoModal("Uyarı", "Seçilen tarih bu aya ait değil. Yalnızca bulunduğunuz ayın hücrelerine not eklenebilir.");
+                    return;
+                }
+            } else {
+                if (!state.data.adminGeneralNotes) state.data.adminGeneralNotes = [];
+                state.data.adminGeneralNotes.push({
+                    id: crypto.randomUUID(),
+                    date: dateVal,
+                    personId: personId,
+                    text: text,
+                    targetYear: year,
+                    targetMonth: month
+                });
+            }
+
+            document.getElementById('general-note-text').value = '';
+            document.getElementById('general-note-date').value = '';
+            document.getElementById('general-note-person').value = '';
+
+            await saveDataToFirestore();
         }
 
         function updateUIForAuth() {
             const user = state.currentUser;
-            if(!user) return; // Don't update UI if no user is logged in
+            if(!user) return;
             
             const isAdmin = user.role === 'admin';
-
             userInfoDiv.classList.remove('hidden');
             userNameSpan.textContent = user.name;
             
             adminControls.classList.toggle('hidden', !isAdmin);
             settingsNavBtn.classList.toggle('hidden', !isAdmin);
             extraDetailsContainer.classList.toggle('hidden', !isAdmin);
-            personSelectorContainer.classList.toggle('hidden', !isAdmin);
+            
+            if(window.ScheduleApp.modules.calendar && window.ScheduleApp.modules.calendar.updateForAuth) {
+                window.ScheduleApp.modules.calendar.updateForAuth(isAdmin);
+            }
+
             mainEl.classList.toggle('read-only-view', !isAdmin);
-            document.getElementById('export-summary-btn').classList.toggle('hidden', !isAdmin);
             monthEventsSummary.classList.toggle('hidden', state.currentPage !== 'schedule');
             
-            if (!isAdmin) {
-                switchView('calendar');
-            } else {
-                switchView(state.currentPage);
-            }
-            
-            populatePersonSelector();
+            switchView(isAdmin ? state.currentPage : 'calendar');
             loadMonthData();
         }
 
@@ -717,8 +668,7 @@
 
             if (username.toLowerCase() === 'admin' && password === 'kdtm0000') {
                 userFound = { name: 'Yönetici', role: 'admin' };
-            } 
-            else {
+            } else {
                 const regularUser = getPeople(false).find(p => p.name.toLowerCase() === username.toLowerCase() && (p.password || '').toLowerCase() === password.toLowerCase());
                 if(regularUser) {
                     userFound = { id: regularUser.id, name: regularUser.name, role: 'user' };
@@ -728,15 +678,12 @@
             if (userFound) {
                 state.currentUser = userFound;
                 localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
-                
                 passwordModalBackdrop.classList.add('hidden');
                 usernameInput.value = '';
                 passwordInput.value = '';
                 errorEl.classList.add('hidden');
-
                 document.querySelector('nav').classList.remove('hidden');
                 mainEl.classList.remove('hidden');
-
                 updateUIForAuth();
             } else {
                 errorEl.classList.remove('hidden');
@@ -746,7 +693,6 @@
         function handleLogout() {
             state.currentUser = null;
             localStorage.removeItem('currentUser');
-            
             document.querySelector('nav').classList.add('hidden');
             mainEl.classList.add('hidden');
             userInfoDiv.classList.add('hidden');
@@ -755,7 +701,7 @@
         
         function switchView(view) {
             state.currentPage = view;
-            state.highlightedPersonId = null; // Reset highlight on view switch
+            state.highlightedPersonId = null;
             
             allViews.forEach(v => v.classList.add('hidden'));
             allNavBtns.forEach(b => b.classList.remove('active'));
@@ -771,18 +717,23 @@
         
         function renderAllDynamicViews() {
             renderSchedule();
-            generateAndRenderReport();
-            renderPersonalCalendar();
-            renderSettingsPage();
+            
+            ['summary', 'calendar', 'settings'].forEach(modName => {
+                const mod = window.ScheduleApp.modules[modName];
+                if (mod && !mod.missing && typeof mod.render === 'function') {
+                    mod.render();
+                }
+            });
         }
 
         function renderSchedule(){
             renderMonthHeader();
             renderTable();
             renderUnderScheduleSummary();
-            if (state.currentUser.role === 'admin') {
+            if (state.currentUser && state.currentUser.role === 'admin') {
                 renderBranchVisitTable();
                 renderDeployTable();
+                renderNotesTable();
             }
         }
 
@@ -822,27 +773,41 @@
         function renderMonthHeader() {
             const monthText = `${MONTH_NAMES[state.currentMonth]} ${state.currentYear}`;
             currentMonthYearEl.textContent = monthText;
-            if (state.currentUser.role === 'admin') {
+            if (state.currentUser && state.currentUser.role === 'admin') {
                 document.getElementById('branch-visit-title').textContent = `${monthText} Şube Ziyaret Çalışması`;
                 document.getElementById('deploy-title').textContent = `${monthText} Deploy Çalışması`;
             }
+        }
+
+        function openCellNoteModal(day, personId, currentNote) {
+            showNoteModal(currentNote, async (newNote) => {
+                const { currentYear: year, currentMonth: month } = state;
+                if (!state.data.adminNotes) state.data.adminNotes = {};
+                if (!state.data.adminNotes[year]) state.data.adminNotes[year] = {};
+                if (!state.data.adminNotes[year][month]) state.data.adminNotes[year][month] = {};
+                if (!state.data.adminNotes[year][month][day]) state.data.adminNotes[year][month][day] = {};
+                
+                if (newNote.trim() === '') {
+                    delete state.data.adminNotes[year][month][day][personId];
+                    if(Object.keys(state.data.adminNotes[year][month][day]).length === 0) delete state.data.adminNotes[year][month][day];
+                } else {
+                    state.data.adminNotes[year][month][day][personId] = newNote;
+                }
+                await saveDataToFirestore();
+            });
         }
         
         function handleTableClick(event) {
             const nameCell = event.target.closest('tr[data-person-row-id] td:first-child');
             if (nameCell) {
                 const personId = nameCell.parentElement.dataset.personRowId;
-                if (state.highlightedPersonId === personId) {
-                    state.highlightedPersonId = null; // Toggle off if same row is clicked
-                } else {
-                    state.highlightedPersonId = personId; // Highlight new row
-                }
-                renderTable(); // Re-render to apply/remove the class from state
+                state.highlightedPersonId = (state.highlightedPersonId === personId) ? null : personId;
+                renderTable();
                 return;
             }
 
-            const cell = event.target.closest('[data-type], .day-header');
-            if (!cell || state.currentUser.role !== 'admin' || document.getElementById('schedule-view').classList.contains('published-view')) return;
+            const cell = event.target.closest('.square-cell[data-type], .day-header');
+            if (!cell || !state.currentUser || state.currentUser.role !== 'admin' || document.getElementById('schedule-view').classList.contains('published-view')) return;
             
             const { type, personId, date } = cell.dataset;
             const [year, month, day] = date.split('-').map(Number);
@@ -851,414 +816,63 @@
 
             if (cell.classList.contains('day-header')) {
                  items.push({ label: 'Günü Tatil Yap', action: () => { 
-                    activePeopleToday.forEach(p => updateData(day, p.id, 'status', 'T', true));
-                    updateData(day, null, 'oncall', null, false);
-                    updateData(day, null, 'deploy', null, false);
+                    state.tempScheduleData[day] = state.tempScheduleData[day] || {};
+                    state.tempScheduleData[day].backup = JSON.parse(JSON.stringify(state.tempScheduleData[day]));
+                    
+                    activePeopleToday.forEach(p => {
+                        state.tempScheduleData[day][p.id] = { status: 'T', manual: true };
+                    });
+                    delete state.tempScheduleData[day].oncall;
+                    delete state.tempScheduleData[day].deploy;
+                    
+                    renderSchedule();
                 }});
                 items.push({ label: 'Tatili Temizle', action: () => { 
-                    activePeopleToday.forEach(p => { 
-                        if (state.tempScheduleData[day]?.[p.id]?.status === 'T') { 
-                            updateData(day, p.id, 'status', null, false); 
-                        } 
-                    });
+                    if (state.tempScheduleData[day] && state.tempScheduleData[day].backup) {
+                        const backup = state.tempScheduleData[day].backup;
+                        state.tempScheduleData[day] = backup;
+                        delete state.tempScheduleData[day].backup; 
+                    } else {
+                        activePeopleToday.forEach(p => { 
+                            if (state.tempScheduleData[day]?.[p.id]?.status === 'T') { 
+                                delete state.tempScheduleData[day][p.id];
+                            } 
+                        });
+                    }
+                    renderSchedule();
                 }});
-            } else if (type === 'status') {
-                 const adminVisibleStatuses = Object.keys(STATUSES).filter(key => !REQUEST_STATUSES.includes(key));
-                 items = adminVisibleStatuses.map(key => ({
-                    label: STATUSES[key].label, color: STATUSES[key].color,
-                    action: () => { updateData(day, personId, 'status', key, true); }
-                }));
-                items.push({ label: 'Otomatik', action: () => { updateData(day, personId, 'status', null, false); } });
+            } else if (type === 'status' || type === 'weekend') {
+                const currentNote = state.data.adminNotes?.[year]?.[month]?.[day]?.[personId] || '';
+                const dayData = state.tempScheduleData[day]?.[personId] || {};
+                const isUserSelected = dayData.isUserSelected;
+
+                if (type === 'weekend') {
+                    items.push({ label: 'Not Ekle/Düzenle', action: () => openCellNoteModal(day, personId, currentNote) });
+                } else {
+                    const adminVisibleStatuses = Object.keys(STATUSES).filter(key => key !== 'T' && key !== 'i');
+                    items = adminVisibleStatuses.map(key => ({
+                        label: STATUSES[key].label, color: STATUSES[key].color,
+                        action: () => { 
+                            const apply = () => updateData(day, personId, 'status', key, true);
+                            if (isUserSelected) {
+                                showConfirmModal('Kullanıcı Seçimi', 'Bu hücre kullanıcı tarafından seçilmiş. Yönetici olarak üzerine yazmak istediğinize emin misiniz?', apply);
+                            } else apply();
+                        }
+                    }));
+                    items.push({ label: 'Otomatik', action: () => { 
+                        const apply = () => updateData(day, personId, 'status', null, false);
+                        if (isUserSelected) {
+                            showConfirmModal('Kullanıcı Seçimi', 'Bu hücre kullanıcı tarafından seçilmiş. Otomatiğe çevirmek istediğinize emin misiniz?', apply);
+                        } else apply();
+                    }});
+                    items.push({ label: 'Not Ekle/Düzenle', action: () => openCellNoteModal(day, personId, currentNote) });
+                }
             } else if (type === 'oncall' || type === 'deploy') {
                 items = activePeopleToday.map(p => ({ label: p.name, action: () => { updateData(day, null, type, { personId: p.id, manual: true }); } }));
-                const removeLabel = type === 'oncall' ? 'Otomatik' : 'Kaldır';
-                items.push({ label: removeLabel, action: () => { updateData(day, null, type, null, false); } });
+                items.push({ label: type === 'oncall' ? 'Otomatik' : 'Kaldır', action: () => { updateData(day, null, type, null, false); } });
             }
 
             if (items.length > 0) showModal(cell, items);
-        }
-        
-        // --- CALENDAR PAGE ---
-        function populatePersonSelector() {
-            const people = getPeople();
-            personSelector.innerHTML = '<option value="" selected disabled>-- Kişi Seçin --</option>';
-            people.forEach(person => {
-                const option = document.createElement('option');
-                option.value = person.id;
-                option.textContent = person.name;
-                personSelector.appendChild(option);
-            });
-            
-            if (state.currentUser?.role === 'user') {
-                personSelector.value = state.currentUser.id;
-            }
-        }
-        
-        function handleCalendarClick(event) {
-            const cell = event.target.closest('.calendar-day.current-month:not(.weekend-day)');
-            if (!cell || state.currentUser.role === 'admin') return; 
-            
-            const day = parseInt(cell.dataset.day);
-            const personId = state.currentUser.id;
-            const isPublished = state.tempScheduleData.isPublished || false;
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            const cellDate = new Date(state.currentYear, state.currentMonth, day);
-            const dayData = state.tempScheduleData[day]?.[personId] || {};
-            const isLocked = dayData.manual || (state.calendarChanges[day]?.locked === true);
-
-            let items = [];
-
-            items.push({ label: 'Not Ekle', action: () => {
-                const currentNote = state.data.notes?.[state.currentYear]?.[state.currentMonth]?.[day]?.[personId] || '';
-                showNoteModal(currentNote, (newNote) => {
-                    if (!state.calendarChanges[day]) state.calendarChanges[day] = {};
-                    state.calendarChanges[day].note = newNote;
-                    calendarSaveBtn.classList.remove('hidden');
-                    renderPersonalCalendar();
-                });
-            }});
-
-            if (isPublished) {
-                const isAutoAssignedWorkDay = (WORK_LIKE_STATUSES.includes(dayData.status)) && !dayData.manual;
-
-                if (isLocked) { // Always allow unlocking
-                    items.push({ label: 'Sabitlemeyi Kaldır', action: () => {
-                        if (!state.calendarChanges[day]) state.calendarChanges[day] = {};
-                        state.calendarChanges[day].locked = false;
-                        calendarSaveBtn.classList.remove('hidden');
-                        renderPersonalCalendar();
-                    }});
-                } else if (isAutoAssignedWorkDay) { // Only allow locking auto-assigned work days
-                    items.push({ label: 'Sabitle', action: () => {
-                        if (!state.calendarChanges[day]) state.calendarChanges[day] = {};
-                        state.calendarChanges[day].locked = true;
-                        calendarSaveBtn.classList.remove('hidden');
-                        renderPersonalCalendar();
-                    }});
-                }
-            }
-            
-            if (!isPublished && cellDate >= today) {
-                if (REQUEST_STATUSES.includes(dayData.status)) {
-                    items.push({ label: 'İzin Talebini Kaldır', action: () => {
-                        if (!state.calendarChanges[day]) state.calendarChanges[day] = {};
-                        state.calendarChanges[day].status = null;
-                        calendarSaveBtn.classList.remove('hidden');
-                        renderPersonalCalendar();
-                    }});
-                } else {
-                    items.push({ label: 'İzin Talebi', action: () => {
-                        if (!state.calendarChanges[day]) state.calendarChanges[day] = {};
-                        state.calendarChanges[day].status = 'izt';
-                        calendarSaveBtn.classList.remove('hidden');
-                        renderPersonalCalendar();
-                    }});
-                    items.push({ label: 'Serbest Zaman Talebi', action: () => {
-                        if (!state.calendarChanges[day]) state.calendarChanges[day] = {};
-                        state.calendarChanges[day].status = 'szt';
-                        calendarSaveBtn.classList.remove('hidden');
-                        renderPersonalCalendar();
-                    }});
-                }
-            }
-
-            if (state.calendarChanges[day]) {
-                 items.push({ label: 'Değişikliği İptal Et', action: () => {
-                    delete state.calendarChanges[day];
-                    if (Object.keys(state.calendarChanges).length === 0) {
-                        calendarSaveBtn.classList.add('hidden');
-                    }
-                    renderPersonalCalendar();
-                }});
-            }
-
-            if(items.length > 0) showModal(cell, items);
-        }
-
-        async function handleCalendarSave() {
-            const { currentYear: year, currentMonth: month } = state;
-            const personId = state.currentUser.id;
-            const isPublished = !!state.data.publishedSchedules?.[year]?.[month];
-            const hasLockChange = Object.values(state.calendarChanges).some(change => change.hasOwnProperty('locked'));
-
-            // Special logic for "Sabitle" on a published month
-            if (isPublished && hasLockChange) {
-                let publishedData = deepCopy(state.data.publishedSchedules[year][month]);
-                for (const day in state.calendarChanges) {
-                    const changes = state.calendarChanges[day];
-                    if (changes.hasOwnProperty('note')) {
-                        if (!state.data.notes) state.data.notes = {};
-                        if (!state.data.notes[year]) state.data.notes[year] = {};
-                        if (!state.data.notes[year][month]) state.data.notes[year][month] = {};
-                        if (!state.data.notes[year][month][day]) state.data.notes[year][month][day] = {};
-                        state.data.notes[year][month][day][personId] = changes.note;
-                    }
-                    if (changes.hasOwnProperty('locked')) {
-                        if (!publishedData[day]) publishedData[day] = {};
-                        if (!publishedData[day][personId]) publishedData[day][personId] = {};
-                        const existingStatus = publishedData[day]?.[personId]?.status;
-                        if(existingStatus) {
-                             publishedData[day][personId] = { status: existingStatus, manual: changes.locked };
-                        }
-                    }
-                }
-                state.data.publishedSchedules[year][month] = publishedData;
-                if (!state.data.draftSchedules[year]) state.data.draftSchedules[year] = {};
-                state.data.draftSchedules[year][month] = deepCopy(publishedData);
-            } else {
-                 // --- Original logic for unpublished months or non-locking changes ---
-                const draft = state.data.draftSchedules?.[year]?.[month];
-                const published = state.data.publishedSchedules?.[year]?.[month];
-                let monthToUpdate = deepCopy(draft || published || {});
-                for (const day in state.calendarChanges) {
-                    if (!monthToUpdate[day]) monthToUpdate[day] = {};
-                    if (state.currentUser.role === 'user' && !monthToUpdate[day][personId]) monthToUpdate[day][personId] = {};
-                    const changes = state.calendarChanges[day];
-                    if (changes.hasOwnProperty('note')) {
-                        if (!state.data.notes) state.data.notes = {};
-                        if (!state.data.notes[year]) state.data.notes[year] = {};
-                        if (!state.data.notes[year][month]) state.data.notes[year][month] = {};
-                        if (!state.data.notes[year][month][day]) state.data.notes[year][month][day] = {};
-                        state.data.notes[year][month][day][personId] = changes.note;
-                    }
-                    if (changes.hasOwnProperty('locked')) {
-                        monthToUpdate[day][personId].manual = changes.locked;
-                    }
-                    if (changes.hasOwnProperty('status')) {
-                         if (changes.status === null) {
-                             if (monthToUpdate[day] && monthToUpdate[day][personId]) {
-                                 delete monthToUpdate[day][personId];
-                                 if (Object.keys(monthToUpdate[day]).length === 0) {
-                                    delete monthToUpdate[day];
-                                }
-                             }
-                         } else {
-                            monthToUpdate[day][personId] = { status: changes.status, manual: true };
-                         }
-                    }
-                }
-                if (!state.data.draftSchedules[year]) state.data.draftSchedules[year] = {};
-                state.data.draftSchedules[year][month] = monthToUpdate;
-            }
-
-            await saveDataToFirestore();
-            state.calendarChanges = {};
-            calendarSaveBtn.classList.add('hidden');
-        }
-        
-        function renderPersonalCalendar() {
-            let personId = personSelector.value;
-            if (state.currentUser.role === 'user') {
-                personId = state.currentUser.id;
-                personSelector.value = personId;
-            }
-
-            const person = getPeople(false).find(p => p.id === personId);
-            const year = state.currentYear;
-            const month = state.currentMonth;
-            
-            const calendarContainer = document.getElementById('calendar-container');
-            const calendarTitle = document.getElementById('calendar-title');
-            
-            calendarContainer.innerHTML = '';
-
-            if (!person) {
-                calendarTitle.textContent = 'Kişisel Takvim';
-                document.getElementById('calendar-summaries').innerHTML = '';
-                calendarContainer.innerHTML = `<div class="text-center p-16 text-gray-500 bg-gray-50 rounded-lg">Lütfen takvimini görmek için bir kişi seçin.</div>`;
-                return;
-            }
-            
-            calendarTitle.textContent = `${person.name} - ${MONTH_NAMES[month]} ${year} Takvimi`;
-            const scheduleData = state.tempScheduleData;
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const firstDayOfMonth = new Date(year, month, 1).getDay();
-            const dayIndex = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-
-            let html = '<div class="calendar-grid">';
-            ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].forEach(day => { html += `<div class="calendar-header">${day}</div>`; });
-            for (let i = 0; i < dayIndex; i++) { html += `<div class="calendar-day"></div>`; }
-            
-            for (let day = 1; day <= daysInMonth; day++) {
-                const date = new Date(year, month, day);
-                const isToday = (today.getDate() === day && today.getMonth() === month && today.getFullYear() === year);
-
-                const currentStatusData = { ...scheduleData[day]?.[person.id] };
-                const pendingChange = state.calendarChanges[day];
-                if (pendingChange) {
-                    if (pendingChange.hasOwnProperty('status')) {
-                        if (pendingChange.status === null) {
-                             delete currentStatusData.status;
-                             delete currentStatusData.manual;
-                        } else {
-                            currentStatusData.status = pendingChange.status;
-                        }
-                    }
-                    if (pendingChange.hasOwnProperty('locked')) currentStatusData.manual = pendingChange.locked;
-                }
-                
-                const statusInfo = currentStatusData.status ? STATUSES[currentStatusData.status] : null;
-                let statusColor = statusInfo ? (statusInfo.color || '') : '#ffffff';
-                let statusText = statusInfo ? statusInfo.short : '';
-                
-                if(currentStatusData.status === 'szt') statusText = `SZ TALEP`;
-                if(currentStatusData.status === 'izt') statusText = `İZİN TALEP`;
-                if(currentStatusData.status) statusColor = statusInfo.class === 'request-cell' ? '#fecaca' : statusColor;
-
-                let events = [];
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                
-                if (scheduleData[day]?.oncall?.personId === person.id) events.push('<span class="event-item">Nöbet</span>');
-                
-                if (scheduleData[day]?.deploy?.personId === person.id) {
-                    events.push(`<span class="event-item event-deploy">Deploy</span>`);
-                }
-                
-                const visitForDay = state.data.branchVisits?.find(v => v.date === dateStr && v.personId === person.id);
-                if (visitForDay) {
-                    events.push(`<span class="event-item event-visit">Ziyaret</span>`);
-                }
-                
-                const note = (pendingChange?.note !== undefined) ? pendingChange.note : (state.data.notes?.[year]?.[month]?.[day]?.[personId] || '');
-                if(note) events.push(`<span class="event-item event-note">Not: ${note}</span>`);
-                if(currentStatusData.manual && !REQUEST_STATUSES.includes(currentStatusData.status)) events.push('<span class="event-item event-lock">Sabit</span>');
-                
-                const eventText = events.join('');
-                
-                let dayClasses = `calendar-day current-month`;
-                if(date.getDay() === 0 || date.getDay() === 6) dayClasses += " weekend-day";
-
-                html += `<div class="${dayClasses}" data-day="${day}" style="background-color: ${statusColor};">
-                            <span class="day-number ${isToday ? 'today' : ''}">${day}</span>
-                            <div class="watermark">${statusText}</div>
-                            <div class="event-list">${eventText}</div>
-                         </div>`;
-            }
-            html += '</div>';
-            calendarContainer.innerHTML = html;
-            renderPersonalCalendarSummaries(personId, year, month);
-        }
-        
-        function renderPersonalCalendarSummaries(personId, year, month) {
-            const summariesContainer = document.getElementById('calendar-summaries');
-            summariesContainer.innerHTML = '';
-            
-            const allVisits = state.data.branchVisits || [];
-            const personVisits = allVisits.filter(v => {
-                if(!v.date || v.personId !== personId) return false;
-                const visitDate = new Date(v.date);
-                return visitDate.getFullYear() === year && visitDate.getMonth() === month;
-            }).sort((a, b) => new Date(a.date) - new Date(b.date));
-            
-            const scheduleData = state.tempScheduleData || {};
-            const deployData = state.data.deployData || [];
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            let personDeploys = [];
-            for (let day = 1; day <= daysInMonth; day++) {
-                if (scheduleData[day]?.deploy?.personId === personId) {
-                    const date = new Date(year, month, day);
-                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    let eventData = deployData.find(d => d.date === dateStr) || { name: '(Belirtilmemiş)' };
-                    personDeploys.push({ date: date, name: eventData.name });
-                }
-            }
-            personDeploys.sort((a,b) => a.date - b.date);
-
-            let visitHtml = '<div><h4 class="font-semibold mb-2 border-b pb-1">Bu Ayki Ziyaretleriniz</h4>';
-            if (personVisits.length > 0) {
-                visitHtml += '<div class="space-y-1 text-xs">';
-                personVisits.forEach(visit => {
-                    const formattedDate = formatSummaryDate(visit.date);
-                    visitHtml += `<p>${formattedDate} - ${visit.name || '(Belirtilmemiş)'} (${visit.type})</p>`;
-                });
-                visitHtml += '</div>';
-            } else {
-                visitHtml += '<p class="text-gray-500 text-xs">Bu ay için planlanmış ziyaretiniz yok.</p>';
-            }
-            visitHtml += '</div>';
-
-            let deployHtml = '<div><h4 class="font-semibold mb-2 border-b pb-1">Bu Ayki Deploy Görevleriniz</h4>';
-            if (personDeploys.length > 0) {
-                deployHtml += '<div class="space-y-1 text-xs">';
-                personDeploys.forEach(deploy => {
-                    const formattedDate = formatSummaryDate(deploy.date);
-                    deployHtml += `<p>${formattedDate} - ${deploy.name}</p>`;
-                });
-                deployHtml += '</div>';
-            } else {
-                deployHtml += '<p class="text-gray-500 text-xs">Bu ay için planlanmış deploy göreviniz yok.</p>';
-            }
-            deployHtml += '</div>';
-
-            summariesContainer.innerHTML = visitHtml + deployHtml;
-        }
-
-        // --- SETTINGS PAGE ---
-        function renderSettingsPage() {
-            if (state.currentUser?.role !== 'admin') return;
-            const people = getPeople();
-            const tableBody = document.querySelector('#people-management-table tbody');
-            tableBody.innerHTML = '';
-            people.forEach(person => {
-                const tr = document.createElement('tr');
-                tr.dataset.id = person.id;
-                tr.innerHTML = `
-                    <td class="p-1 border"><input type="number" class="order-input w-16 text-center" value="${person.order}"></td>
-                    <td class="p-1 border"><input type="text" class="name-input" value="${person.name}"></td>
-                    <td class="p-1 border"><input type="password" class="password-input" value="${person.password || ''}"></td>
-                    <td class="p-1 border"><input type="date" class="start-date-input" value="${person.startDate || ''}"></td>
-                    <td class="p-1 border"><input type="date" class="end-date-input" value="${person.endDate || ''}"></td>
-                    <td class="p-1 border text-center">
-                        <button class="save-person-btn bg-green-500 text-white p-2 rounded-md hover:bg-green-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M15.854 3.146a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.708 0l-4-4a.5.5 0 1 1 .708-.708L5 12.293l9.646-9.647a.5.5 0 0 1 .708 0z"/></svg>
-                        </button>
-                        <button class="delete-person-btn bg-red-500 text-white p-2 rounded-md hover:bg-red-600 ml-2">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
-                        </button>
-                    </td>
-                `;
-                tableBody.appendChild(tr);
-            });
-            tableBody.querySelectorAll('.save-person-btn').forEach(btn => btn.addEventListener('click', handleSavePerson));
-            tableBody.querySelectorAll('.delete-person-btn').forEach(btn => btn.addEventListener('click', handleDeletePerson));
-        }
-
-        async function handleSavePerson(e) {
-            const tr = e.target.closest('tr');
-            const id = tr.dataset.id;
-            const person = state.data.peopleData.find(p => p.id === id);
-            if (person) {
-                person.order = parseInt(tr.querySelector('.order-input').value) || 0;
-                person.name = tr.querySelector('.name-input').value;
-                person.password = tr.querySelector('.password-input').value;
-                person.startDate = tr.querySelector('.start-date-input').value || null;
-                person.endDate = tr.querySelector('.end-date-input').value || null;
-                await saveDataToFirestore();
-            }
-        }
-
-        function handleDeletePerson(e) {
-            const tr = e.target.closest('tr');
-            const id = tr.dataset.id;
-            const person = state.data.peopleData.find(p => p.id === id);
-            if (person) {
-                showConfirmModal('Kişiyi Sil', `'${person.name}' adlı kişiyi silmek istediğinizden emin misiniz?`, async () => {
-                    state.data.peopleData = state.data.peopleData.filter(p => p.id !== id);
-                    await saveDataToFirestore();
-                });
-            }
-        }
-        
-        async function handleAddNewPerson() {
-            const maxOrder = Math.max(0, ...state.data.peopleData.map(p => p.order));
-            state.data.peopleData.push({
-                id: crypto.randomUUID(), name: 'Yeni Kişi', password: '',
-                startDate: null, endDate: null, order: maxOrder + 1
-            });
-            await saveDataToFirestore();
         }
         
         function renderTable() {
@@ -1269,167 +883,281 @@
             const today = new Date();
             today.setHours(0,0,0,0);
 
-            let headerHtml = '<thead><tr><th class="w-32 py-3 px-2 border-b border-gray-200 bg-gray-50 text-left font-semibold text-gray-600">Kişi</th>';
-            for (let day = 1; day <= daysInMonth; day++) {
-                const date = new Date(year, month, day);
-                const dayName = DAY_NAMES[date.getDay()];
-                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                const isToday = date.getTime() === today.getTime();
-                
-                let thClasses = `border-b border-l border-gray-200 font-semibold ${isWeekend ? 'main-table-weekend' : ''}`;
-                let divClasses = `flex flex-col items-center justify-center p-1 day-header cursor-pointer`;
-                if(isToday) divClasses += ' today-header';
-                
-                headerHtml += `<th class="${thClasses}"><div class="${divClasses}" data-date="${year}-${month}-${day}"><span>${day}</span><span class="font-normal text-xs">${dayName}</span></div></th>`;
-            }
-            headerHtml += '<th class="border-b border-l border-gray-200 bg-gray-50 font-semibold text-gray-600">Aylık<br>%</th>';
-            headerHtml += '<th class="border-b border-l border-gray-200 bg-gray-50 font-semibold text-gray-600">Yıllık<br>%</th>';
-            headerHtml += '</tr></thead>';
-            
-            let bodyHtml = '<tbody>';
-            const activePeopleForMonth = people.filter(p => {
-                 const monthStart = new Date(year, month, 1);
-                 const monthEnd = new Date(year, month, daysInMonth);
-                 return true;
+            const nextWorkingDays = {};
+            people.forEach(p => {
+                let checkDate = new Date(today);
+                checkDate.setDate(checkDate.getDate() + 1);
+                for (let i = 0; i < 30; i++) { 
+                    const cy = checkDate.getFullYear();
+                    const cm = checkDate.getMonth();
+                    const cd = checkDate.getDate();
+
+                    if (checkDate.getDay() % 6 !== 0 && getActivePeopleForDate(cy, cm, cd).some(active => active.id === p.id)) {
+                        const status = getStatusOnDate(p.id, cy, cm, cd, scheduleData);
+                        if (!LEAVE_STATUSES.includes(status) && status !== 'T') {
+                            if (cy === year && cm === month) {
+                                nextWorkingDays[p.id] = cd;
+                            }
+                            break;
+                        }
+                    }
+                    checkDate.setDate(checkDate.getDate() + 1);
+                }
             });
 
-            activePeopleForMonth.forEach(person => {
+            let headerHtml = '<thead><tr><th class="person-cell text-gray-700">Kişi</th>';
+            for (let day = 1; day <= daysInMonth; day++) {
+                const isToday = new Date(year, month, day).getTime() === today.getTime();
+                let thClasses = `square-cell day-header bg-gray-50 text-gray-700`;
+                if (isToday) thClasses += ' col-today col-today-top bg-blue-50 text-blue-800';
+                headerHtml += `<th class="${thClasses}" data-date="${year}-${month}-${day}"><div class="flex flex-col leading-none items-center justify-center h-full"><span>${day}</span><span style="font-size: 10px; font-weight:400; margin-top:2px;">${DAY_NAMES[new Date(year, month, day).getDay()]}</span></div></th>`;
+            }
+            headerHtml += '<th class="px-2 bg-gray-50 text-gray-700 text-xs">Aylık<br>%</th><th class="px-2 bg-gray-50 text-gray-700 text-xs">Yıllık<br>%</th></tr></thead>';
+            
+            let bodyHtml = '<tbody>';
+            people.forEach(person => {
                 const highlightClass = state.highlightedPersonId === person.id ? 'row-highlight' : '';
-                bodyHtml += `<tr data-person-row-id="${person.id}" class="${highlightClass}"><td class="w-32 py-3 px-2 border-b border-gray-200 text-left font-semibold text-gray-700 bg-white">${person.name}</td>`;
+                bodyHtml += `<tr data-person-row-id="${person.id}" class="${highlightClass}"><td class="person-cell text-gray-800">${person.name}</td>`;
+                
                 for (let day = 1; day <= daysInMonth; day++) {
-                    const date = new Date(year, month, day);
-                    const isPast = date < today;
-                    const isWeekend = date.getDay() % 6 === 0;
+                    const cellDate = new Date(year, month, day);
+                    const isWeekend = cellDate.getDay() % 6 === 0;
+                    const isToday = cellDate.getTime() === today.getTime();
                     const isActive = getActivePeopleForDate(year, month, day).some(p => p.id === person.id);
-                    let cellContent = '';
-                    let tdClasses = 'border-b border-l border-gray-200';
+                    let cellContent = '', tdClasses = 'square-cell';
+                    
+                    if (isToday) tdClasses += ' col-today';
                     if (isWeekend) tdClasses += ' main-table-weekend';
-                    if (!isActive) tdClasses += ' inactive-cell';
-                    if (isPast && !isWeekend) tdClasses += ' past-day';
+                    if (!isActive && !isWeekend) tdClasses += ' inactive-cell';
 
                     const dayData = scheduleData[day]?.[person.id] || {};
+                    
+                    const isPastOrToday = cellDate <= today;
+                    const isNextWorkingDay = nextWorkingDays[person.id] === day;
+                    const isLocked = isPastOrToday || dayData.manual || isNextWorkingDay;
+
+                    const currentLockSvg = isLocked ? `<div class="lock-indicator"></div>` : '';
+                    
+                    const noteText = state.data.adminNotes?.[year]?.[month]?.[day]?.[person.id] || '';
+                    const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+                    const noteIndicatorHtml = noteText ? `<div class="note-indicator"></div>` : '';
+                    const titleAttr = (noteText && isAdmin) ? `title="${noteText.replace(/"/g, '&quot;')}"` : '';
+
+                    const userSelectedSvg = dayData.isUserSelected ? `<div class="user-indicator"></div>` : '';
+
                     if (!isWeekend && isActive) {
                         if (dayData.status) {
                             const statusInfo = STATUSES[dayData.status] || {};
-                            const manualClass = dayData.manual ? 'manual-override' : '';
-                            const statusText = statusInfo.short || dayData.status.toUpperCase();
-                            cellContent = `<div class="status-circle ${statusInfo.class || ''} ${manualClass}" data-type="status" data-person-id="${person.id}" data-date="${year}-${month}-${day}">${statusText}</div>`;
+                            tdClasses += ' ' + (statusInfo.class || '');
+                            cellContent = `${statusInfo.short || dayData.status.toUpperCase()}${currentLockSvg}${noteIndicatorHtml}${userSelectedSvg}`;
                         } else {
-                            cellContent = `<div class="status-circle bg-gray-100" data-type="status" data-person-id="${person.id}" data-date="${year}-${month}-${day}"></div>`;
+                            tdClasses += ' bg-white'; 
+                            cellContent = `${currentLockSvg}${noteIndicatorHtml}${userSelectedSvg}`;
+                        }
+                        bodyHtml += `<td class="${tdClasses}" data-type="status" data-person-id="${person.id}" data-date="${year}-${month}-${day}" ${titleAttr}>${cellContent}</td>`;
+                    } else {
+                        if (isWeekend) {
+                            bodyHtml += `<td class="${tdClasses}" data-type="weekend" data-person-id="${person.id}" data-date="${year}-${month}-${day}" ${titleAttr}>${noteIndicatorHtml}</td>`;
+                        } else {
+                            bodyHtml += `<td class="${tdClasses}"></td>`;
                         }
                     }
-                    bodyHtml += `<td class="${tdClasses}">${cellContent}</td>`;
                 }
                 
                 const monthStats = calculatePersonMonthStats(year, month, person.id);
                 const yearStats = calculatePersonYearStats(year, person.id);
                 const monthRatio = monthStats.workDays > 0 ? Math.round((monthStats.officeDays / monthStats.workDays) * 100) : 0;
                 const yearRatio = yearStats.workDays > 0 ? Math.round((yearStats.officeDays / yearStats.workDays) * 100) : 0;
-                const monthTdClass = monthRatio < 51 && monthStats.workDays > 0 ? 'bg-red-200 text-red-800' : '';
-                const yearTdClass = yearRatio < 51 && yearStats.workDays > 0 ? 'bg-red-200 text-red-800' : '';
-
-
-                bodyHtml += `<td class="border-b border-l border-gray-200 font-bold ${monthTdClass}">${monthRatio}%</td>`;
-                bodyHtml += `<td class="border-b border-l border-gray-200 font-bold ${yearTdClass}">${yearRatio}%</td>`;
-                bodyHtml += `</tr>`;
+                
+                bodyHtml += `<td class="font-bold bg-white text-xs ${monthRatio < 51 && monthStats.workDays > 0 ? 'text-red-600' : ''}">${monthRatio}%</td>`;
+                bodyHtml += `<td class="font-bold bg-white text-xs ${yearRatio < 51 && yearStats.workDays > 0 ? 'text-red-600' : ''}">${yearRatio}%</td></tr>`;
             });
 
-            bodyHtml += `<tr><td class="py-2 px-2 border-b border-gray-200 text-left font-semibold text-gray-700 bg-gray-50">Günlük Ofis %</td>`;
+            bodyHtml += `<tr><td class="person-cell bg-gray-50 text-gray-700">Günlük Ofis %</td>`;
             for (let day = 1; day <= daysInMonth; day++) {
                 const isWeekend = new Date(year, month, day).getDay() % 6 === 0;
-                let cellContent = '';
-                let tdClasses = `border-b border-l border-gray-200 font-semibold text-sm`;
+                const isToday = new Date(year, month, day).getTime() === today.getTime();
+                let cellContent = '', tdClasses = `square-cell text-xs bg-gray-50`;
+
+                if (isToday) tdClasses += ' col-today';
 
                 if (isWeekend) {
                     tdClasses += ' main-table-weekend';
                 } else {
-                    tdClasses += ' bg-gray-50';
                     const activePeopleToday = getActivePeopleForDate(year, month, day);
-                    let officeCount = 0;
-                    let workCount = 0;
-                    activePeopleToday.forEach(person => {
-                        const status = scheduleData[day]?.[person.id]?.status;
-                        if (OFFICE_LIKE_STATUSES.includes(status)) officeCount++;
-                        if (WORK_LIKE_STATUSES.includes(status)) workCount++;
+                    let officeCount = 0, workCount = 0;
+                    activePeopleToday.forEach(p => {
+                        const s = scheduleData[day]?.[p.id]?.status;
+                        if (OFFICE_LIKE_STATUSES.includes(s)) officeCount++;
+                        if (WORK_LIKE_STATUSES.includes(s)) workCount++;
                     });
                     const ratio = workCount > 0 ? Math.round((officeCount / workCount) * 100) : 0;
                     cellContent = `${ratio}%`;
-                    if (workCount > 0 && ratio < 50) {
-                        tdClasses += ' bg-red-200 text-red-800';
-                    }
+                    if (workCount > 0 && ratio < 50) tdClasses += ' !bg-red-200 !text-red-800';
                 }
                 bodyHtml += `<td class="${tdClasses}">${cellContent}</td>`;
             }
-            bodyHtml += `<td class="border-b border-l border-gray-200 bg-gray-50"></td>`;
-            bodyHtml += `<td class="border-b border-l border-gray-200 bg-gray-50"></td>`;
-            bodyHtml += `</tr>`;
+            bodyHtml += `<td class="bg-gray-50" colspan="2"></td></tr>`;
 
-            // Nöbetçi Satırı
-            bodyHtml += `<tr><td class="py-3 px-2 border-b border-gray-200 text-left font-semibold text-gray-700 bg-white">Nöbetçi</td>`;
+            bodyHtml += `<tr><td class="person-cell bg-gray-50 text-gray-700">Nöbetçi</td>`;
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(year, month, day);
-                let tdClasses = `border-b border-l border-gray-200 ${date.getDay() % 6 === 0 ? 'main-table-weekend' : ''}`;
+                const isToday = date.getTime() === today.getTime();
+                let tdClasses = `square-cell`;
                 let cellContent = '';
+
+                if (isToday) tdClasses += ' col-today';
+
                 if (date.getDay() % 6 !== 0) {
-                    const dayData = scheduleData[day] || {};
-                    const oncallData = dayData.oncall || {};
+                    const oncallData = scheduleData[day]?.oncall || {};
                     const oncallPerson = getPeople(false).find(p => p.id === oncallData.personId);
-                    const oncallPersonStatus = oncallPerson ? (dayData[oncallPerson.id]?.status) : null;
-                    const text = oncallPerson ? oncallPerson.name.substring(0, 3).toUpperCase() : '-';
+                    const isWorkingDay = getActivePeopleForDate(year, month, day).some(p => WORK_LIKE_STATUSES.includes(scheduleData[day]?.[p.id]?.status));
+                    const isError = (isWorkingDay && oncallPerson && !HOME_LIKE_STATUSES.includes(scheduleData[day]?.[oncallPerson.id]?.status));
                     
-                    const isWorkingDay = getActivePeopleForDate(year, month, day).some(p => WORK_LIKE_STATUSES.includes(dayData[p.id]?.status));
-                    const isError = (isWorkingDay && oncallPerson && !HOME_LIKE_STATUSES.includes(oncallPersonStatus));
-                    if (isError) tdClasses += ' bg-red-200';
+                    tdClasses += oncallPerson ? ' bg-blue-100 text-blue-800' : ' bg-white';
+                    if (isError) tdClasses += ' !bg-red-200 !text-red-800';
                     
-                    cellContent = `<div class="p-2 rounded-md font-bold text-blue-800 cursor-pointer ${oncallData.manual ? 'manual-override' : ''}" data-type="oncall" data-date="${year}-${month}-${day}">${text}</div>`;
-                }
-                bodyHtml += `<td class="${tdClasses}">${cellContent}</td>`;
-            }
-            bodyHtml += `<td class="border-b border-l border-gray-200 bg-white" colspan="2"></td></tr>`;
+                    const isOncallLocked = date <= today || oncallData.manual;
+                    const oncallLockSvg = isOncallLocked ? `<div class="lock-indicator"></div>` : '';
 
-            // Deploy Satırı
-            bodyHtml += `<tr><td class="py-3 px-2 border-b border-gray-200 text-left font-semibold text-gray-700 bg-white">Deploy</td>`;
+                    cellContent = `${oncallPerson ? oncallPerson.name.substring(0, 3).toUpperCase() : '-'}${oncallLockSvg}`;
+                    bodyHtml += `<td class="${tdClasses}" data-type="oncall" data-date="${year}-${month}-${day}">${cellContent}</td>`;
+                } else {
+                    tdClasses += ' main-table-weekend';
+                    bodyHtml += `<td class="${tdClasses}"></td>`;
+                }
+            }
+            bodyHtml += `<td class="bg-gray-50" colspan="2"></td></tr>`;
+
+            bodyHtml += `<tr><td class="person-cell bg-gray-50 text-gray-700">Deploy</td>`;
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(year, month, day);
-                let tdClasses = `border-b border-l border-gray-200 ${date.getDay() % 6 === 0 ? 'main-table-weekend' : ''}`;
+                const isToday = date.getTime() === today.getTime();
+                let tdClasses = `square-cell`;
                 let cellContent = '';
+
+                if (isToday) tdClasses += ' col-today col-today-bottom';
+
                 if (date.getDay() % 6 !== 0) {
-                    const dayData = scheduleData[day] || {};
-                    const deployData = dayData.deploy || {};
+                    const deployData = scheduleData[day]?.deploy || {};
                     const deployPerson = getPeople(false).find(p => p.id === deployData.personId);
-                    const deployPersonStatus = deployPerson ? (dayData[deployPerson.id]?.status) : null;
-                    const text = deployPerson ? deployPerson.name.substring(0, 3).toUpperCase() : '-';
-
-                    if (deployPerson && OFFICE_LIKE_STATUSES.includes(deployPersonStatus)) tdClasses += ' bg-red-200';
+                    if (deployPerson && OFFICE_LIKE_STATUSES.includes(scheduleData[day]?.[deployPerson.id]?.status)) tdClasses += ' !bg-red-200 !text-red-800';
+                    else tdClasses += deployPerson ? ' bg-purple-100 text-purple-800' : ' bg-white';
                     
-                    cellContent = `<div class="p-2 rounded-md font-bold text-purple-800 cursor-pointer ${deployData.manual ? 'manual-override' : ''}" data-type="deploy" data-date="${year}-${month}-${day}">${text}</div>`;
-                }
-                bodyHtml += `<td class="${tdClasses}">${cellContent}</td>`;
-            }
-            bodyHtml += `<td class="border-b border-l border-gray-200 bg-white" colspan="2"></td></tr>`;
+                    const isDeployLocked = date <= today || deployData.manual;
+                    const deployLockSvg = isDeployLocked ? `<div class="lock-indicator"></div>` : '';
 
-            bodyHtml += '</tbody>';
+                    cellContent = `${deployPerson ? deployPerson.name.substring(0, 3).toUpperCase() : '-'}${deployLockSvg}`;
+                    bodyHtml += `<td class="${tdClasses}" data-type="deploy" data-date="${year}-${month}-${day}">${cellContent}</td>`;
+                } else {
+                    tdClasses += ' main-table-weekend';
+                    bodyHtml += `<td class="${tdClasses}"></td>`;
+                }
+            }
+            bodyHtml += `<td class="bg-gray-50" colspan="2"></td></tr></tbody>`;
             tableEl.innerHTML = headerHtml + bodyHtml;
         }
 
-        function showModal(targetElement, items) {
-            modalContent.innerHTML = '';
-            items.forEach(item => {
-                const itemEl = document.createElement('div');
-                itemEl.classList.add('custom-modal-item');
-                if(item.color) itemEl.innerHTML += `<div class="modal-color-swatch" style="background-color: ${item.color}"></div>`;
-                itemEl.innerHTML += `<span>${item.label}</span>`;
-                itemEl.addEventListener('click', () => { item.action(); backdrop.classList.add('hidden'); });
-                modalContent.appendChild(itemEl);
+        function renderNotesTable() {
+            const tableBody = document.querySelector("#notes-table tbody");
+            if (!tableBody) return;
+            const { currentYear: year, currentMonth: month } = state;
+            const people = getPeople(false);
+            
+            const selectEl = document.getElementById('general-note-person');
+            if (selectEl && selectEl.options.length <= 1) {
+                people.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = p.name;
+                    selectEl.appendChild(opt);
+                });
+            }
+
+            let combined = [];
+            if (state.data.adminGeneralNotes) {
+                combined = combined.concat(state.data.adminGeneralNotes.filter(n => n.targetYear === year && n.targetMonth === month).map(n => ({...n, isCell: false})));
+            }
+            
+            if (state.data.adminNotes?.[year]?.[month]) {
+                const mNotes = state.data.adminNotes[year][month];
+                for (let d in mNotes) {
+                    for (let pid in mNotes[d]) {
+                        if (mNotes[d][pid]) {
+                            combined.push({
+                                id: `cell-${d}-${pid}`,
+                                date: `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,
+                                personId: pid,
+                                text: mNotes[d][pid],
+                                day: parseInt(d),
+                                isCell: true
+                            });
+                        }
+                    }
+                }
+            }
+
+            combined.sort((a,b) => {
+                if (a.date && b.date) return new Date(a.date) - new Date(b.date);
+                if (a.date) return -1;
+                if (b.date) return 1;
+                return 0;
             });
+
+            tableBody.innerHTML = '';
+            combined.forEach(note => {
+                const tr = document.createElement('tr');
+                const p = people.find(x => x.id === note.personId);
+                const dateStr = note.date ? new Date(note.date).toLocaleDateString('tr-TR') : '-';
+                const pName = p ? p.name : '-';
+                
+                tr.innerHTML = `
+                    <td class="p-2 border text-center">${dateStr}</td>
+                    <td class="p-2 border text-center">${pName}</td>
+                    <td class="p-2 border text-left">${note.text}</td>
+                    <td class="p-2 border text-center">
+                        <button data-id="${note.id}" data-type="${note.isCell ? 'cell' : 'general'}" data-day="${note.day}" data-pid="${note.personId}" class="delete-note-btn bg-red-500 text-white p-1 px-2 rounded-md hover:bg-red-600 transition-all text-xs">✖</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            document.querySelectorAll('.delete-note-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const { id, type, day, pid } = e.currentTarget.dataset;
+                    if (type === 'cell') {
+                        delete state.data.adminNotes[year][month][day][pid];
+                        if (Object.keys(state.data.adminNotes[year][month][day]).length === 0) delete state.data.adminNotes[year][month][day];
+                    } else {
+                        state.data.adminGeneralNotes = state.data.adminGeneralNotes.filter(n => n.id !== id);
+                    }
+                    await saveDataToFirestore();
+                });
+            });
+        }
+
+        function showModal(targetElement, items) {
+            modalContent.innerHTML = items.map(item => `
+                <div class="custom-modal-item" data-action="custom">
+                    ${item.color ? `<div class="modal-color-swatch" style="background-color: ${item.color}"></div>` : ''}
+                    <span>${item.label}</span>
+                </div>
+            `).join('');
+
+            Array.from(modalContent.children).forEach((el, index) => {
+                el.addEventListener('click', () => { items[index].action(); backdrop.classList.add('hidden'); });
+            });
+
             const rect = targetElement.getBoundingClientRect();
             modalContent.style.visibility = 'hidden';
             backdrop.classList.remove('hidden');
+            
             const modalRect = modalContent.getBoundingClientRect();
             let top = rect.bottom + 5;
             let left = rect.left;
             if (top + modalRect.height > window.innerHeight) top = rect.top - modalRect.height - 5;
             if (left + modalRect.width > window.innerWidth) left = rect.right - modalRect.width;
+            
             modalContent.style.top = `${top}px`;
             modalContent.style.left = `${left}px`;
             modalContent.style.visibility = 'visible';
@@ -1438,22 +1166,17 @@
         async function updateData(day, personId, type, value, isManual, shouldRender = true) {
             state.tempScheduleData[day] = state.tempScheduleData[day] || {};
             if (type === 'status') {
-                state.tempScheduleData[day][personId] = state.tempScheduleData[day][personId] || {};
                 if(value === null) {
                     delete state.tempScheduleData[day][personId];
                 } else {
+                    // Yönetici işlemi olduğu için isUserSelected bilgisi sıfırlanır
                     state.tempScheduleData[day][personId] = { status: value, manual: isManual };
                 }
-            } else { // oncall, deploy
-                 if(value === null) {
-                    delete state.tempScheduleData[day][type];
-                } else {
-                    state.tempScheduleData[day][type] = value;
-                }
+            } else {
+                if(value === null) delete state.tempScheduleData[day][type];
+                else state.tempScheduleData[day][type] = value;
             }
-            if(shouldRender) {
-                renderSchedule();
-            }
+            if(shouldRender) renderSchedule();
         }
 
         function calculatePersonMonthStats(year, month, personId, schedule = state.tempScheduleData, upToDay = 32) {
@@ -1466,13 +1189,9 @@
                 const pStatus = schedule[day]?.[personId]?.status;
                 if (pStatus && WORK_LIKE_STATUSES.includes(pStatus)) {
                     stats.workDays++;
-                    if (OFFICE_LIKE_STATUSES.includes(pStatus)) {
-                        stats.officeDays++;
-                    }
+                    if (OFFICE_LIKE_STATUSES.includes(pStatus)) stats.officeDays++;
                 }
-                 if (schedule[day]?.oncall?.personId === personId) {
-                    stats.oncallCount++;
-                }
+                if (schedule[day]?.oncall?.personId === personId) stats.oncallCount++;
             }
             return stats;
         }
@@ -1485,7 +1204,6 @@
                     : (state.data.publishedSchedules?.[targetYear]?.[month] || state.data.draftSchedules?.[targetYear]?.[month] || {});
                 
                 if(!scheduleSource) continue;
-
                 const monthStats = calculatePersonMonthStats(targetYear, month, personId, scheduleSource);
                 stats.officeDays += monthStats.officeDays;
                 stats.workDays += monthStats.workDays;
@@ -1495,46 +1213,33 @@
         }
         
         function getStatusOnDate(personId, year, month, day, schedule) {
-            if (day < 1) { // Handle checks for previous month
+            if (day < 1) {
                 const prevDate = new Date(year, month, day);
                 const prevYear = prevDate.getFullYear();
                 const prevMonth = prevDate.getMonth();
                 const prevDay = prevDate.getDate();
                 const scheduleSource = (prevYear === state.currentYear && prevMonth === state.currentMonth) ?
-                    schedule :
-                    (state.data.publishedSchedules?.[prevYear]?.[prevMonth] || state.data.draftSchedules?.[prevYear]?.[prevMonth] || {});
+                    schedule : (state.data.publishedSchedules?.[prevYear]?.[prevMonth] || state.data.draftSchedules?.[prevYear]?.[prevMonth] || {});
                 return scheduleSource?.[prevDay]?.[personId]?.status;
             }
             const scheduleSource = (year === state.currentYear && month === state.currentMonth) ?
-                schedule :
-                (state.data.publishedSchedules?.[year]?.[month] || state.data.draftSchedules?.[year]?.[month] || {});
-
+                schedule : (state.data.publishedSchedules?.[year]?.[month] || state.data.draftSchedules?.[year]?.[month] || {});
             return scheduleSource?.[day]?.[personId]?.status;
         }
 
         function getPastConsecutiveHomeDays(person, year, month, day, schedule) {
             let consecutiveHome = 0;
             let currentDate = new Date(year, month, day);
-            
             for (let i = 0; i < 5; i++) { 
                 currentDate.setDate(currentDate.getDate() - 1);
                 const d_day = currentDate.getDate();
                 const d_month = currentDate.getMonth();
                 const d_year = currentDate.getFullYear();
-
                 if (!getActivePeopleForDate(d_year, d_month, d_day).some(p => p.id === person.id)) continue;
-
                 const personStatus = getStatusOnDate(person.id, d_year, d_month, d_day, schedule);
-                
-                if (currentDate.getDay() % 6 === 0 || LEAVE_STATUSES.includes(personStatus) || personStatus === 'T') {
-                    continue;
-                }
-                
-                if (HOME_LIKE_STATUSES.includes(personStatus)) {
-                    consecutiveHome++;
-                } else {
-                    break;
-                }
+                if (currentDate.getDay() % 6 === 0 || LEAVE_STATUSES.includes(personStatus) || personStatus === 'T') continue;
+                if (HOME_LIKE_STATUSES.includes(personStatus)) consecutiveHome++;
+                else break;
             }
             return consecutiveHome;
         }
@@ -1542,80 +1247,64 @@
         function getWeekInfo(person, year, month, day, schedule) {
             const date = new Date(year, month, day);
             const weekStart = new Date(date);
-            const dayOfWeek = date.getDay();
-            // Set to Monday of the week
-            weekStart.setDate(date.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+            weekStart.setDate(date.getDate() - (date.getDay() === 0 ? 6 : date.getDay() - 1));
             weekStart.setHours(0,0,0,0);
 
-            let weekWorkDays = 0;
-            let weekHomeDays = 0;
-            let weekOfficeDays = 0;
+            let weekWorkDays = 0, weekHomeDays = 0, weekOfficeDays = 0;
+            let totalExpectedWeekWorkDays = 0;
+            let remainingWeekWorkDays = 0;
 
             for (let i = 0; i < 5; i++) { 
                 const d = new Date(weekStart);
                 d.setDate(weekStart.getDate() + i);
-                
-                const d_day = d.getDate();
-                const d_month = d.getMonth();
-                const d_year = d.getFullYear();
-
+                const d_day = d.getDate(), d_month = d.getMonth(), d_year = d.getFullYear();
                 if (!getActivePeopleForDate(d_year, d_month, d_day).some(p => p.id === person.id)) continue;
                 
                 const personStatus = getStatusOnDate(person.id, d_year, d_month, d_day, schedule);
-
+                if (LEAVE_STATUSES.includes(personStatus) || REQUEST_STATUSES.includes(personStatus) || personStatus === 'T') continue;
+                
+                totalExpectedWeekWorkDays++;
+                
                 if (personStatus && WORK_LIKE_STATUSES.includes(personStatus)) {
                     weekWorkDays++;
-                    if (HOME_LIKE_STATUSES.includes(personStatus)) {
-                        weekHomeDays++;
-                    } else if (OFFICE_LIKE_STATUSES.includes(personStatus)) {
-                        weekOfficeDays++;
-                    }
+                    if (HOME_LIKE_STATUSES.includes(personStatus)) weekHomeDays++;
+                    else if (OFFICE_LIKE_STATUSES.includes(personStatus)) weekOfficeDays++;
+                } else if (!personStatus) {
+                    remainingWeekWorkDays++;
                 }
             }
-            return { weekWorkDays, weekHomeDays, weekOfficeDays };
+            return { weekWorkDays, weekHomeDays, weekOfficeDays, totalExpectedWeekWorkDays, remainingWeekWorkDays };
         }
         
         function calculateTotalWorkDaysInMonth(year, month, personId, schedule) {
             let workDays = 0;
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             for (let day = 1; day <= daysInMonth; day++) {
-                const date = new Date(year, month, day);
-                if (date.getDay() % 6 === 0) continue; 
+                if (new Date(year, month, day).getDay() % 6 === 0) continue; 
                 if (!getActivePeopleForDate(year, month, day).some(p => p.id === personId)) continue;
-                
                 const pStatus = schedule[day]?.[personId]?.status;
-                if (!LEAVE_STATUSES.includes(pStatus) && !REQUEST_STATUSES.includes(pStatus) && pStatus !== 'T') {
-                    workDays++;
-                }
+                if (!LEAVE_STATUSES.includes(pStatus) && !REQUEST_STATUSES.includes(pStatus) && pStatus !== 'T') workDays++;
             }
             return workDays;
         }
 
         function runMonthlyAutoAssignment() {
             showLoading("Otomatik atama yapılıyor...");
-            
             setTimeout(() => {
-                let bestPlan = null;
-                let highestScore = -Infinity;
-
+                let bestPlan = null, highestScore = -Infinity;
                 for(let i = 0; i < config.SIMULATION_COUNT; i++) {
                     const newPlan = generateSinglePlan();
                     if (newPlan) {
                         const score = evaluatePlan(newPlan);
-                        if (score > highestScore) {
-                            highestScore = score;
-                            bestPlan = newPlan;
-                        }
+                        if (score > highestScore) { highestScore = score; bestPlan = newPlan; }
                     }
                 }
                 
                 if (bestPlan) {
-                    const finalPlan = assignOncallAndDeployToPlan(bestPlan);
-                    state.tempScheduleData = finalPlan;
+                    state.tempScheduleData = assignOncallAndDeployToPlan(bestPlan);
                 } else {
-                    showInfoModal("Uyarı","Belirtilen kurallarla uygun bir plan oluşturulamadı. Lütfen izinleri veya manuel atamaları kontrol edin.");
+                    showInfoModal("Uyarı","Belirtilen kurallarla uygun bir plan oluşturulamadı.");
                 }
-
                 renderSchedule();
                 hideLoading();
             }, 50); 
@@ -1628,85 +1317,99 @@
             today.setHours(0, 0, 0, 0);
 
             let plan = deepCopy(state.tempScheduleData);
+            const people = getPeople();
+
+            const nextWorkingDays = {};
+            people.forEach(p => {
+                let checkDate = new Date(today);
+                checkDate.setDate(checkDate.getDate() + 1);
+                for (let i = 0; i < 30; i++) {
+                    const cy = checkDate.getFullYear();
+                    const cm = checkDate.getMonth();
+                    const cd = checkDate.getDate();
+
+                    if (checkDate.getDay() % 6 !== 0 && getActivePeopleForDate(cy, cm, cd).some(active => active.id === p.id)) {
+                        const status = getStatusOnDate(p.id, cy, cm, cd, plan);
+                        if (!LEAVE_STATUSES.includes(status) && status !== 'T') {
+                            if (cy === year && cm === month) {
+                                nextWorkingDays[p.id] = cd;
+                            }
+                            break;
+                        }
+                    }
+                    checkDate.setDate(checkDate.getDate() + 1);
+                }
+            });
+
             for(let day=1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
                 if(!plan[day]) continue;
                 for(const personId in plan[day]){
-                    if (getPeople(false).some(p => p.id === personId)) {
+                    if (people.some(p => p.id === personId)) {
                         const entry = plan[day][personId];
-                        if(entry && !entry.manual && !LEAVE_STATUSES.includes(entry.status)) {
+                        
+                        const isLocked = (date <= today) || (entry && entry.manual) || (nextWorkingDays[personId] === day);
+                        
+                        // Kullanıcı seçimleri manuel de olsa silinmesin diye || entry.isUserSelected eklenebilir,
+                        // ancak otomatik atama kurallarında, bu seçimin korunması plan oluşturmayı kısıtlar mı?
+                        // Otomatik atamada kilitli veya "isUserSelected" ise silmiyoruz
+                        if(entry && !isLocked && !entry.isUserSelected && !LEAVE_STATUSES.includes(entry.status)) {
                             delete plan[day][personId];
                         }
                     }
                 }
             }
 
-            const people = getPeople();
-            
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(year, month, day);
-                if (date < today || date.getDay() % 6 === 0) continue;
-                
-                const dayIsHoliday = people.some(p => getStatusOnDate(p.id, year, month, day, plan) === 'T');
-                if(dayIsHoliday) continue;
+                if (date <= today || date.getDay() % 6 === 0) continue;
+                if (people.some(p => getStatusOnDate(p.id, year, month, day, plan) === 'T')) continue;
                 
                 const activePeople = getActivePeopleForDate(year, month, day);
+                
                 const assignablePeople = activePeople.filter(p => {
-                    const status = getStatusOnDate(p.id, year, month, day, plan);
-                    return !status;
+                    const existingStatus = getStatusOnDate(p.id, year, month, day, plan);
+                    const isLocked = plan[day]?.[p.id]?.manual || plan[day]?.[p.id]?.isUserSelected || (nextWorkingDays[p.id] === day) || LEAVE_STATUSES.includes(existingStatus);
+                    return !isLocked && !existingStatus; 
                 });
                 
                 if (assignablePeople.length === 0) continue;
 
-                let assignments = {};
-                let flexiblePeople = [];
-
+                let assignments = {}, flexiblePeople = [];
                 assignablePeople.forEach(person => {
-                    let forceOffice = false;
+                    const weekInfo = getWeekInfo(person, year, month, day, plan);
+                    const requiredOfficeThisWeek = Math.min(2, weekInfo.totalExpectedWeekWorkDays);
                     
-                    if (getPastConsecutiveHomeDays(person, year, month, day, plan) >= 3) {
+                    let forceOffice = false;
+
+                    if (weekInfo.weekOfficeDays + weekInfo.remainingWeekWorkDays <= requiredOfficeThisWeek) {
                         forceOffice = true;
                     }
-
-                    if (!forceOffice) {
-                        const { weekHomeDays } = getWeekInfo(person, year, month, day, plan);
-                        if(weekHomeDays >= 3) {
-                            forceOffice = true;
-                        }
+                    
+                    if (!forceOffice && getPastConsecutiveHomeDays(person, year, month, day, plan) >= 3) {
+                        forceOffice = true;
                     }
 
                     if (!forceOffice) {
                         const totalWorkDays = calculateTotalWorkDaysInMonth(year, month, person.id, plan);
                         if (totalWorkDays > 0) {
                             const requiredOffice = Math.ceil(totalWorkDays * 0.51);
-                            let officeDaysSoFar = 0;
-                            let remainingWorkDays = 0;
-                            
+                            let officeDaysSoFar = 0, remainingWorkDays = 0;
                             for (let d = 1; d <= daysInMonth; d++) {
                                 if (new Date(year, month, d).getDay() % 6 === 0) continue;
                                 if (!getActivePeopleForDate(year, month, d).some(p => p.id === person.id)) continue;
-                                
                                 const status = getStatusOnDate(person.id, year, month, d, plan);
                                 if (!LEAVE_STATUSES.includes(status) && !REQUEST_STATUSES.includes(status) && status !== 'T') {
-                                    if (d < day && OFFICE_LIKE_STATUSES.includes(status)) {
-                                        officeDaysSoFar++;
-                                    }
-                                    if(d >= day && !status) {
-                                       remainingWorkDays++;
-                                    }
+                                    if (d < day && OFFICE_LIKE_STATUSES.includes(status)) officeDaysSoFar++;
+                                    if (d >= day && !status) remainingWorkDays++;
                                 }
                             }
-                           
-                            if (requiredOffice - officeDaysSoFar >= remainingWorkDays) {
-                                forceOffice = true;
-                            }
+                            if (requiredOffice - officeDaysSoFar >= remainingWorkDays) forceOffice = true;
                         }
                     }
 
-                    if(forceOffice) {
-                        assignments[person.id] = 'O';
-                    } else {
-                        flexiblePeople.push(person);
-                    }
+                    if(forceOffice) assignments[person.id] = 'O';
+                    else flexiblePeople.push(person);
                 });
                 
                 const workingTodayCount = activePeople.filter(p => !LEAVE_STATUSES.includes(getStatusOnDate(p.id, year, month, day, plan)) && !REQUEST_STATUSES.includes(getStatusOnDate(p.id, year, month, day, plan))).length;
@@ -1716,42 +1419,25 @@
 
                 if (flexiblePeople.length > 0) {
                     let neededFromFlexible = Math.max(0, dailyRequiredOffice - currentOfficeCount);
-
                     const scoredPeople = flexiblePeople.map(person => {
                         const { weekOfficeDays } = getWeekInfo(person, year, month, day, plan);
-                        let score = 0;
                         const yearlyStats = calculatePersonYearStats(year, person.id, plan);
                         const yearlyRate = yearlyStats.workDays > 0 ? yearlyStats.officeDays / yearlyStats.workDays : 0.51;
-                        score += (0.51 - yearlyRate) * 500;
-                        if (getPastConsecutiveHomeDays(person, year, month, day, plan) === 1) {
-                            score -= 150;
-                        }
+                        let score = (0.51 - yearlyRate) * 500;
+                        if (getPastConsecutiveHomeDays(person, year, month, day, plan) === 1) score -= 150;
                         return { person, score, weekOfficeDays };
                     }).sort((a, b) => b.score - a.score);
 
                     const canGoOffice = scoredPeople.filter(p => p.weekOfficeDays < 3);
                     const shouldNotGoOffice = scoredPeople.filter(p => p.weekOfficeDays >= 3);
                     
-                    for (const scored of canGoOffice) {
-                        if (neededFromFlexible > 0) {
-                            assignments[scored.person.id] = 'O';
-                            neededFromFlexible--;
-                        } else {
-                            assignments[scored.person.id] = 'E';
-                        }
-                    }
-
-                    for (const scored of shouldNotGoOffice) {
-                         if (neededFromFlexible > 0) {
-                            assignments[scored.person.id] = 'O';
-                            neededFromFlexible--;
-                        } else {
-                            assignments[scored.person.id] = 'E';
-                        }
-                    }
+                    [...canGoOffice, ...shouldNotGoOffice].forEach(scored => {
+                        if (neededFromFlexible > 0) { assignments[scored.person.id] = 'O'; neededFromFlexible--; }
+                        else assignments[scored.person.id] = 'E';
+                    });
                 }
 
-                if (!plan[day]) plan[day] = {};
+                plan[day] = plan[day] || {};
                 for (const personId in assignments) {
                     plan[day][personId] = { status: assignments[personId], manual: false };
                 }
@@ -1765,8 +1451,7 @@
             let totalScore = 0;
             const weights = { balance: 1.0, grouping: 1.8, weeklyOffice: 4.5, maximizeHome: 1.0 };
             
-            let groupingScore = 0;
-            let weeklyOfficePenalty = 0;
+            let groupingScore = 0, weeklyOfficePenalty = 0;
 
             people.forEach(person => {
                 let consecutiveHome = 0;
@@ -1802,18 +1487,16 @@
                 for (let day = 1; day <= daysInMonth; day++) {
                     const date = new Date(year, month, day);
                     if (date.getDay() % 6 === 0) continue;
-
                     const dayOfWeek = date.getDay();
                     const weekStartDay = day - (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-                    
                     if (checkedWeeks.has(weekStartDay)) continue;
                     checkedWeeks.add(weekStartDay);
                     
-                    const { weekWorkDays, weekHomeDays } = getWeekInfo(person, year, month, day, schedule);
-                    const weekOfficeDays = weekWorkDays - weekHomeDays;
-
-                    if (weekOfficeDays >= 4) {
-                        weeklyOfficePenalty += Math.pow(4, weekOfficeDays - 3) * 20; 
+                    const weekInfo = getWeekInfo(person, year, month, day, schedule);
+                    const requiredOffice = Math.min(2, weekInfo.totalExpectedWeekWorkDays);
+                    
+                    if (weekInfo.weekOfficeDays < requiredOffice) {
+                        weeklyOfficePenalty += Math.pow(5, requiredOffice - weekInfo.weekOfficeDays) * 50; 
                     }
                 }
             });
@@ -1836,9 +1519,7 @@
             people.forEach(p => {
                 const monthStats = calculatePersonMonthStats(year, month, p.id, schedule);
                 const monthRatio = monthStats.workDays > 0 ? (monthStats.officeDays / monthStats.workDays) * 100 : 0;
-                if(monthRatio > 60) {
-                    officePenalty += (monthRatio - 60);
-                }
+                if(monthRatio > 60) officePenalty += (monthRatio - 60);
             });
             totalScore -= officePenalty * weights.maximizeHome;
             
@@ -1848,17 +1529,19 @@
         function assignOncallAndDeployToPlan(plan) {
             const { currentYear: year, currentMonth: month } = state;
             const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(year, month, day);
                 if (date.getDay() % 6 === 0) continue;
                 if (getPeople(false).some(p => getStatusOnDate(p.id, year, month, day, plan) === 'T')) continue;
                 
-                if (!plan[day]) plan[day] = {};
-
-                // Oncall Assignment
+                plan[day] = plan[day] || {};
                 const oncallData = plan[day].oncall || {};
-                if (!oncallData.manual) {
+                const isPastOrToday = date <= today;
+
+                if (!oncallData.manual && !isPastOrToday) {
                     const activePeopleToday = getActivePeopleForDate(year, month, day);
                     const homeWorkers = activePeopleToday.filter(p => HOME_LIKE_STATUSES.includes(plan[day]?.[p.id]?.status));
                     if (homeWorkers.length > 0) {
@@ -1872,11 +1555,7 @@
                         delete plan[day].oncall;
                     }
                 }
-                
-                 const deployData = plan[day].deploy || {};
-                 if (!deployData.manual) {
-                    delete plan[day].deploy;
-                 }
+                if (!plan[day].deploy?.manual && !isPastOrToday) delete plan[day].deploy;
             }
             return plan;
         }
@@ -1895,62 +1574,106 @@
 
             if (isPublished) {
                 showConfirmModal('Yayından Kaldır', 'Bu ayın çizelgesi yayından kaldırılacak. Emin misiniz?', async () => {
-                    if (state.data.publishedSchedules[year] && state.data.publishedSchedules[year][month]) {
-                        delete state.data.publishedSchedules[year][month];
-                    }
-                    if (state.data.draftSchedules[year] && state.data.draftSchedules[year][month]) {
-                        state.data.draftSchedules[year][month].isPublished = false;
-                    }
+                    if (state.data.publishedSchedules[year]?.[month]) delete state.data.publishedSchedules[year][month];
+                    if (state.data.draftSchedules[year]?.[month]) state.data.draftSchedules[year][month].isPublished = false;
                     await saveDataToFirestore();
                 });
                 return;
             }
 
-            // Validation before publishing
-            let hasEmptyCells = false;
-            let hasPendingRequests = false;
+            let hasEmptyCells = false, hasPendingRequests = false;
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             for (let day = 1; day <= daysInMonth; day++) {
-                const date = new Date(year, month, day);
-                if (date.getDay() % 6 === 0) continue;
-                
+                if (new Date(year, month, day).getDay() % 6 === 0) continue;
                 const activePeople = getActivePeopleForDate(year, month, day);
+                
+                const isHoliday = activePeople.length > 0 && activePeople.every(p => state.tempScheduleData[day]?.[p.id]?.status === 'T');
+                
                 activePeople.forEach(person => {
                     const status = state.tempScheduleData[day]?.[person.id]?.status;
-                    if (!status) {
-                        hasEmptyCells = true;
-                    } else if (REQUEST_STATUSES.includes(status)) {
-                        hasPendingRequests = true;
-                    }
+                    if (!status) hasEmptyCells = true;
+                    else if (REQUEST_STATUSES.includes(status)) hasPendingRequests = true;
                 });
                 
-                if (!state.tempScheduleData[day]?.oncall?.personId && getActivePeopleForDate(year, month, day).length > 0) {
+                if (!state.tempScheduleData[day]?.oncall?.personId && activePeople.length > 0 && !isHoliday) {
                     hasEmptyCells = true;
                 }
             }
             
-            let errorMessages = [];
-            if (hasEmptyCells) {
-                errorMessages.push('Çizelgede boş bırakılmış günler bulunmaktadır. Lütfen tüm günleri doldurun.');
-            }
-            if (hasPendingRequests) {
-                errorMessages.push('Onay bekleyen izin talepleri bulunmaktadır. Lütfen talepleri değerlendirin.');
+            let errorMsg = '';
+            let warningMsg = '';
+            let ruleViolations = [];
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                if (new Date(year, month, day).getDay() % 6 === 0) continue;
+                const activePeople = getActivePeopleForDate(year, month, day);
+                let offCount = 0, workCount = 0;
+                activePeople.forEach(p => {
+                    const status = state.tempScheduleData[day]?.[p.id]?.status;
+                    if (OFFICE_LIKE_STATUSES.includes(status)) offCount++;
+                    if (WORK_LIKE_STATUSES.includes(status)) workCount++;
+                });
+                if (workCount > 0 && (offCount / workCount) < 0.5) {
+                    ruleViolations.push(`${day} ${MONTH_NAMES[month]} günlük ofis oranı %50'nin altında.`);
+                }
             }
 
-            if (errorMessages.length > 0) {
-                showInfoModal('Yayınlama Başarısız', errorMessages.join('\n\n'));
+            const checkedWeeks = new Set();
+            const peopleList = getPeople();
+            peopleList.forEach(p => {
+                const mStats = calculatePersonMonthStats(year, month, p.id, state.tempScheduleData);
+                if (mStats.workDays > 0 && (mStats.officeDays / mStats.workDays) < 0.5) {
+                    ruleViolations.push(`${p.name} aylık ofis oranı %50'nin altında.`);
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(year, month, day);
+                    if (date.getDay() % 6 === 0) continue;
+                    
+                    const dayOfWeek = date.getDay() === 0 ? 6 : date.getDay() - 1;
+                    const weekStart = new Date(year, month, day - dayOfWeek);
+                    const weekKey = `${p.id}-${weekStart.getTime()}`;
+                    
+                    if (checkedWeeks.has(weekKey)) continue;
+                    checkedWeeks.add(weekKey);
+
+                    const weekStartDay = day - dayOfWeek;
+                    const weekEndDay = weekStartDay + 4;
+                    
+                    if (weekStartDay < 1 || weekEndDay > daysInMonth) {
+                        continue;
+                    }
+                    
+                    const weekInfo = getWeekInfo(p, year, month, day, state.tempScheduleData);
+                    const required = Math.min(2, weekInfo.totalExpectedWeekWorkDays);
+                    if (weekInfo.totalExpectedWeekWorkDays > 0 && weekInfo.weekOfficeDays < required) {
+                        ruleViolations.push(`${p.name} ayın ${day}. günü başlayan haftada en az ${required} gün ofis kuralını sağlamıyor.`);
+                    }
+                }
+            });
+
+            if (ruleViolations.length > 0) {
+                const uniqueViolations = [...new Set(ruleViolations)].slice(0, 5);
+                warningMsg += "Aşağıdaki kurallar ihlal ediliyor:\n- " + uniqueViolations.join("\n- ") + (ruleViolations.length > 5 ? "\n...ve diğerleri." : "") + "\n\n";
+            }
+
+            if (hasEmptyCells) errorMsg += 'Çizelgede boş bırakılmış günler bulunmaktadır. Lütfen tüm günleri doldurun.\n';
+            if (hasPendingRequests) warningMsg += 'Dikkat: Onay bekleyen izin veya serbest zaman talepleri var.\n';
+
+            if (errorMsg) {
+                showInfoModal('Yayınlama Başarısız', errorMsg);
                 return;
             }
 
-            // If validation passes
-            showConfirmModal('Yayınla', 'Bu ayın çizelgesini yayınlamak istiyor musunuz?', async () => {
+            const confirmMsg = warningMsg ? warningMsg + '\nYine de bu ayın çizelgesini yayınlamak istiyor musunuz?' : 'Bu ayın çizelgesini yayınlamak istiyor musunuz?';
+
+            showConfirmModal('Yayınla', confirmMsg, async () => {
                 if (!state.data.draftSchedules[year]) state.data.draftSchedules[year] = {};
                 state.tempScheduleData.isPublished = true;
                 state.data.draftSchedules[year][month] = deepCopy(state.tempScheduleData);
 
                 if (!state.data.publishedSchedules[year]) state.data.publishedSchedules[year] = {};
                 state.data.publishedSchedules[year][month] = deepCopy(state.data.draftSchedules[year][month]);
-
                 await saveDataToFirestore();
             });
         }
@@ -1962,31 +1685,21 @@
             } else {
                 for (let day = 1; day <= daysInMonth; day++) {
                     if (state.tempScheduleData[day]) {
-                        const peopleForDay = Object.keys(state.tempScheduleData[day]);
-                        peopleForDay.forEach(key => {
-                            const personData = state.tempScheduleData[day][key];
-                             if (getPeople(false).some(p => p.id === key)) { // It's a person entry
-                                if (type === 'except-leaves' && !LEAVE_STATUSES.includes(personData.status)) {
-                                    delete state.tempScheduleData[day][key];
-                                } else if (type === 'auto-only' && !personData.manual) {
-                                    delete state.tempScheduleData[day][key];
-                                }
-                            } else { // It's oncall or deploy
-                                if (type === 'except-leaves') {
-                                    delete state.tempScheduleData[day][key];
-                                } else if (type === 'auto-only' && !personData.manual) {
-                                    delete state.tempScheduleData[day][key];
-                                }
+                        Object.keys(state.tempScheduleData[day]).forEach(key => {
+                            const val = state.tempScheduleData[day][key];
+                            if (key !== 'oncall' && key !== 'deploy' && getPeople(false).some(p => p.id === key)) {
+                                if (type === 'except-leaves' && !LEAVE_STATUSES.includes(val.status)) delete state.tempScheduleData[day][key];
+                                else if (type === 'auto-only' && !val.manual) delete state.tempScheduleData[day][key];
+                                else if (type === 'except-user' && !val.isUserSelected) delete state.tempScheduleData[day][key];
+                            } else {
+                                if (type === 'except-leaves' || (type === 'auto-only' && !val.manual) || type === 'except-user') delete state.tempScheduleData[day][key];
                             }
                         });
-                        if (Object.keys(state.tempScheduleData[day]).length === 0) {
-                            delete state.tempScheduleData[day];
-                        }
+                        if (Object.keys(state.tempScheduleData[day]).length === 0) delete state.tempScheduleData[day];
                     }
                 }
             }
             deleteModalBackdrop.classList.add('hidden');
-            // This is a local change, so save it to draft.
             const { currentYear: year, currentMonth: month } = state;
             if (!state.data.draftSchedules[year]) state.data.draftSchedules[year] = {};
             state.data.draftSchedules[year][month] = deepCopy(state.tempScheduleData);
@@ -1998,17 +1711,9 @@
             const isPublished = state.tempScheduleData.isPublished || false;
             const scheduleExists = state.data.draftSchedules?.[state.currentYear]?.[state.currentMonth] || state.data.publishedSchedules?.[state.currentYear]?.[state.currentMonth];
 
-            const statusDivs = [
-                document.getElementById('publish-status'),
-                document.getElementById('calendar-publish-status')
-            ];
-
-            statusDivs.forEach((div) => {
-                if (!div) return;
-
-                // Reset color classes
+            const div = document.getElementById('publish-status');
+            if (div) {
                 div.classList.remove('bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
-
                 if (isPublished) {
                     div.textContent = 'Yayında';
                     div.classList.add('bg-green-100', 'text-green-800');
@@ -2020,10 +1725,9 @@
                 } else {
                     div.classList.add('hidden');
                 }
-            });
+            }
             
             publishBtn.classList.toggle('hidden', isPublished);
-            
             const existingUnpublishBtn = document.getElementById('unpublish-button');
             if(existingUnpublishBtn) existingUnpublishBtn.remove();
 
@@ -2034,11 +1738,7 @@
                 unpublishBtn.className = 'font-semibold text-sm py-1 px-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors shadow-sm flex items-center gap-2';
                 unpublishBtn.innerHTML = `<span>Yayından Kaldır</span>`;
                 unpublishBtn.addEventListener('click', handlePublishToggle);
-                
-                if (publishBtn.parentElement) {
-                    publishBtn.parentElement.insertBefore(unpublishBtn, publishBtn.nextSibling);
-                }
-                
+                if (publishBtn.parentElement) publishBtn.parentElement.insertBefore(unpublishBtn, publishBtn.nextSibling);
                 [saveBtn, deleteBtn, revertBtn, autoAssignBtn].forEach(btn => btn.disabled = true);
             } else {
                 scheduleView.classList.remove('published-view');
@@ -2050,11 +1750,7 @@
         function formatSummaryDate(dateStr) {
             const date = new Date(dateStr);
             const utcDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-            const day = utcDate.getDate();
-            const month = utcDate.getMonth() + 1;
-            const year = utcDate.getFullYear().toString().slice(-2);
-            const weekday = DAY_NAMES[utcDate.getDay()].toLowerCase() + ".";
-            return `${day}.${month}.${year} ${weekday}`;
+            return `${utcDate.getDate()}.${utcDate.getMonth() + 1}.${utcDate.getFullYear().toString().slice(-2)} ${DAY_NAMES[utcDate.getDay()].toLowerCase()}.`;
         }
 
         function renderUnderScheduleSummary() {
@@ -2062,27 +1758,26 @@
             const visitListEl = document.getElementById('visit-summary-list');
             const deployListEl = document.getElementById('deploy-summary-list');
             const people = getPeople(false);
+            
             visitListEl.innerHTML = '';
             deployListEl.innerHTML = '';
 
-            const allVisits = state.data.branchVisits || [];
-            const currentMonthVisits = allVisits.filter(v => {
+            const currentMonthVisits = (state.data.branchVisits || []).filter(v => {
                 if(!v.date) return false;
-                const visitDate = new Date(v.date);
-                return visitDate.getFullYear() === currentYear && visitDate.getMonth() === currentMonth;
-            });
-            currentMonthVisits.sort((a, b) => new Date(a.date) - new Date(b.date));
+                const d = new Date(v.date);
+                return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+            }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
             if (currentMonthVisits.length === 0) {
                 visitListEl.innerHTML = '<p class="text-gray-500">Bu ay için planlanmış ziyaret yok.</p>';
             } else {
                 currentMonthVisits.forEach(visit => {
                     const person = people.find(p => p.id === visit.personId);
-                    if (!person) return;
-                    const formattedDate = formatSummaryDate(visit.date);
-                    const p = document.createElement('p');
-                    p.textContent = `${formattedDate} - ${person.name}: ${visit.name || '(Belirtilmemiş)'} (${visit.type})`;
-                    visitListEl.appendChild(p);
+                    if (person) {
+                        const p = document.createElement('p');
+                        p.textContent = `${formatSummaryDate(visit.date)} - ${person.name}: ${visit.name || '(Belirtilmemiş)'} (${visit.type})`;
+                        visitListEl.appendChild(p);
+                    }
                 });
             }
 
@@ -2091,24 +1786,24 @@
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
             let deployEvents = [];
             for (let day = 1; day <= daysInMonth; day++) {
-                const deployPersonId = scheduleData[day]?.deploy?.personId;
-                const person = people.find(p => p.id === deployPersonId);
+                const person = people.find(p => p.id === scheduleData[day]?.deploy?.personId);
                 if (person) {
-                    const date = new Date(currentYear, currentMonth, day);
                     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    let eventData = deployData.find(d => d.date === dateStr) || { name: '(Belirtilmemiş)' };
-                    deployEvents.push({ date: date, person: person.name, name: eventData.name });
+                    deployEvents.push({
+                        date: new Date(currentYear, currentMonth, day),
+                        person: person.name,
+                        name: (deployData.find(d => d.date === dateStr) || { name: '(Belirtilmemiş)' }).name
+                    });
                 }
             }
             deployEvents.sort((a,b) => a.date - b.date);
 
-             if (deployEvents.length === 0) {
+            if (deployEvents.length === 0) {
                 deployListEl.innerHTML = '<p class="text-gray-500">Bu ay için planlanmış deploy yok.</p>';
             } else {
                 deployEvents.forEach(event => {
-                    const formattedDate = formatSummaryDate(event.date);
                     const p = document.createElement('p');
-                    p.textContent = `${formattedDate} - ${event.person}: ${event.name}`;
+                    p.textContent = `${formatSummaryDate(event.date.toISOString())} - ${event.person}: ${event.name}`;
                     deployListEl.appendChild(p);
                 });
             }
@@ -2124,11 +1819,9 @@
             
             const currentMonthVisits = allVisits.filter(v => {
                 if(!v.date) return false;
-                const visitDate = new Date(v.date);
-                return visitDate.getFullYear() === state.currentYear && visitDate.getMonth() === state.currentMonth;
-            });
-            
-            currentMonthVisits.sort((a, b) => new Date(a.date) - new Date(b.date));
+                const d = new Date(v.date);
+                return d.getFullYear() === state.currentYear && d.getMonth() === state.currentMonth;
+            }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
             currentMonthVisits.forEach(visit => {
                 const tr = document.createElement('tr');
@@ -2136,27 +1829,23 @@
                 if (visit.type === 'Online') tr.classList.add('visit-online');
                 
                 tr.innerHTML = `
-                    <td class="p-1 border">
-                        <input type="date" value="${visit.date || ''}" data-id="${visit.id}" data-field="date" class="w-full">
-                    </td>
+                    <td class="p-1 border"><input type="date" value="${visit.date || ''}" data-id="${visit.id}" data-field="date" class="w-full"></td>
                     <td class="p-1 border">
                         <select data-id="${visit.id}" data-field="personId">
-                            <option value="" ${!visit.personId ? 'selected' : ''}>Seçiniz</option>
+                            <option value="">Seçiniz</option>
                             ${people.map(p => `<option value="${p.id}" ${visit.personId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
                         </select>
                     </td>
                     <td class="p-1 border">
                         <select data-id="${visit.id}" data-field="type">
-                            <option value="" ${!visit.type ? 'selected' : ''}>Seçiniz</option>
+                            <option value="">Seçiniz</option>
                             <option value="Online" ${visit.type === 'Online' ? 'selected' : ''}>Online</option>
                             <option value="Fiziki" ${visit.type === 'Fiziki' ? 'selected' : ''}>Fiziki</option>
                         </select>
                     </td>
                     <td class="p-1 border"><input type="text" value="${visit.name || ''}" data-id="${visit.id}" data-field="name"></td>
-                    <td class="p-1 border">
-                        <button data-id="${visit.id}" class="delete-visit-btn bg-red-500 text-white p-2 rounded-md hover:bg-red-600">
-                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
+                    <td class="p-1 border text-center">
+                        <button data-id="${visit.id}" class="delete-visit-btn bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition-all">✖</button>
                     </td>
                 `;
                 tableBody.appendChild(tr);
@@ -2166,9 +1855,58 @@
                 el.addEventListener('change', async (e) => {
                     const { id, field } = e.target.dataset;
                     let visit = state.data.branchVisits.find(v => v.id == id);
-                    if (visit) {
-                      visit[field] = e.target.value;
-                      await saveDataToFirestore();
+                    if (visit) { 
+                        const oldDate = visit.date;
+                        const oldPersonId = visit.personId;
+
+                        visit[field] = e.target.value; 
+
+                        let scheduleChangedCurrent = false;
+
+                        if (field === 'date' || field === 'personId') {
+                            
+                            if (oldDate && oldPersonId) {
+                                const [oY, oM, oD] = oldDate.split('-').map(Number);
+                                const targetMonth = oM - 1;
+                                
+                                const stillHasVisit = state.data.branchVisits.some(v => v.id != id && v.date === oldDate && v.personId === oldPersonId);
+                                
+                                if (!stillHasVisit) {
+                                    if (oY === state.currentYear && targetMonth === state.currentMonth) {
+                                        if (state.tempScheduleData[oD]?.[oldPersonId]?.status === 'suzi') {
+                                            delete state.tempScheduleData[oD][oldPersonId];
+                                            if (Object.keys(state.tempScheduleData[oD]).length === 0) delete state.tempScheduleData[oD];
+                                            scheduleChangedCurrent = true;
+                                        }
+                                    } else if (state.data.draftSchedules[oY]?.[targetMonth]?.[oD]?.[oldPersonId]?.status === 'suzi') {
+                                        delete state.data.draftSchedules[oY][targetMonth][oD][oldPersonId];
+                                    }
+                                }
+                            }
+                            
+                            if (visit.date && visit.personId) {
+                                const [nY, nM, nD] = visit.date.split('-').map(Number);
+                                const targetMonth = nM - 1;
+                                
+                                if (nY === state.currentYear && targetMonth === state.currentMonth) {
+                                    state.tempScheduleData[nD] = state.tempScheduleData[nD] || {};
+                                    state.tempScheduleData[nD][visit.personId] = { status: 'suzi', manual: true };
+                                    scheduleChangedCurrent = true;
+                                } else {
+                                    if (!state.data.draftSchedules[nY]) state.data.draftSchedules[nY] = {};
+                                    if (!state.data.draftSchedules[nY][targetMonth]) state.data.draftSchedules[nY][targetMonth] = {};
+                                    state.data.draftSchedules[nY][targetMonth][nD] = state.data.draftSchedules[nY][targetMonth][nD] || {};
+                                    state.data.draftSchedules[nY][targetMonth][nD][visit.personId] = { status: 'suzi', manual: true };
+                                }
+                            }
+
+                            if (scheduleChangedCurrent) {
+                                if (!state.data.draftSchedules[state.currentYear]) state.data.draftSchedules[state.currentYear] = {};
+                                state.data.draftSchedules[state.currentYear][state.currentMonth] = deepCopy(state.tempScheduleData);
+                            }
+                        }
+
+                        await saveDataToFirestore(); 
                     }
                 });
             });
@@ -2177,7 +1915,35 @@
                 btn.addEventListener('click', (e) => {
                     const id = e.currentTarget.dataset.id;
                      showConfirmModal('Satırı Sil', 'Bu şube ziyareti kaydını silmek istediğinizden emin misiniz?', async () => {
+                        const visit = state.data.branchVisits.find(v => v.id == id);
+                        let scheduleChangedCurrent = false;
+                        
+                        if (visit && visit.date && visit.personId) {
+                            const [y, m, d] = visit.date.split('-').map(Number);
+                            const targetMonth = m - 1;
+                            
+                            const stillHasVisit = state.data.branchVisits.some(v => v.id != id && v.date === visit.date && v.personId === visit.personId);
+                            
+                            if (!stillHasVisit) {
+                                if (y === state.currentYear && targetMonth === state.currentMonth) {
+                                    if (state.tempScheduleData[d]?.[visit.personId]?.status === 'suzi') {
+                                        delete state.tempScheduleData[d][visit.personId];
+                                        if (Object.keys(state.tempScheduleData[d]).length === 0) delete state.tempScheduleData[d];
+                                        scheduleChangedCurrent = true;
+                                    }
+                                } else if (state.data.draftSchedules[y]?.[targetMonth]?.[d]?.[visit.personId]?.status === 'suzi') {
+                                    delete state.data.draftSchedules[y][targetMonth][d][visit.personId];
+                                }
+                            }
+                        }
+
                         state.data.branchVisits = state.data.branchVisits.filter(v => v.id != id);
+
+                        if (scheduleChangedCurrent) {
+                            if (!state.data.draftSchedules[state.currentYear]) state.data.draftSchedules[state.currentYear] = {};
+                            state.data.draftSchedules[state.currentYear][state.currentMonth] = deepCopy(state.tempScheduleData);
+                        }
+
                         await saveDataToFirestore();
                     });
                 });
@@ -2185,18 +1951,9 @@
         }
         
         async function addNewBranchVisitRow() {
-            if (!Array.isArray(state.data.branchVisits)) {
-                state.data.branchVisits = [];
-            }
-            
-            const date = new Date(state.currentYear, state.currentMonth, 2);
-            const isoDate = date.toISOString().split('T')[0];
-            
-            state.data.branchVisits.push({ 
-                id: crypto.randomUUID(),
-                date: isoDate,
-                name: '', type: '', personId: ''
-            });
+            if (!Array.isArray(state.data.branchVisits)) state.data.branchVisits = [];
+            const isoDate = new Date(state.currentYear, state.currentMonth, 2).toISOString().split('T')[0];
+            state.data.branchVisits.push({ id: crypto.randomUUID(), date: isoDate, name: '', type: '', personId: '' });
             await saveDataToFirestore();
         }
 
@@ -2204,42 +1961,29 @@
             const { currentYear: year, currentMonth: month } = state;
             const tableBody = document.querySelector("#deploy-table tbody");
             tableBody.innerHTML = '';
+            
             const people = getPeople(false);
-
             const scheduleData = state.tempScheduleData || {};
             const deployData = state.data.deployData || [];
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             
             let deployEvents = [];
-
             for (let day = 1; day <= daysInMonth; day++) {
-                const deployPersonId = scheduleData[day]?.deploy?.personId;
-                const deployPerson = people.find(p => p.id === deployPersonId);
-                if (deployPerson) {
-                    const date = new Date(year, month, day);
+                const person = people.find(p => p.id === scheduleData[day]?.deploy?.personId);
+                if (person) {
                     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    
-                    let eventData = deployData.find(d => d.date === dateStr);
-                    if (!eventData) {
-                        eventData = { date: dateStr, name: '' };
-                    }
-                    
                     deployEvents.push({
-                        date: date,
-                        dateStr: dateStr,
-                        person: deployPerson.name,
-                        name: eventData.name
+                        date: new Date(year, month, day), dateStr, person: person.name,
+                        name: (deployData.find(d => d.date === dateStr) || { name: '' }).name
                     });
                 }
             }
-
             deployEvents.sort((a,b) => a.date - b.date);
 
             deployEvents.forEach(event => {
                 const tr = document.createElement('tr');
-                const dayName = DAY_NAMES[event.date.getDay()];
                 tr.innerHTML = `
-                    <td class="p-2 border text-left">${event.date.toLocaleDateString('tr-TR')} ${dayName}</td>
+                    <td class="p-2 border text-left">${event.date.toLocaleDateString('tr-TR')} ${DAY_NAMES[event.date.getDay()]}</td>
                     <td class="p-2 border text-left font-semibold">${event.person}</td>
                     <td class="p-1 border"><input type="text" value="${event.name}" data-date="${event.dateStr}" data-field="name" class="w-full"></td>
                 `;
@@ -2251,7 +1995,7 @@
                     const { date, field } = e.target.dataset;
                     let deployInfo = state.data.deployData.find(d => d.date === date);
                     if (!deployInfo) {
-                        deployInfo = { date: date };
+                        deployInfo = { date };
                         state.data.deployData.push(deployInfo);
                     }
                     deployInfo[field] = e.target.value;
@@ -2259,321 +2003,75 @@
                 });
             });
         }
-        
-        function populateReportDateFilters() {
-            const startMonthSelect = document.getElementById('start-month-select');
-            const startYearSelect = document.getElementById('start-year-select');
-            const endMonthSelect = document.getElementById('end-month-select');
-            const endYearSelect = document.getElementById('end-year-select');
 
-            const years = Array.from({length: 6}, (_, i) => 2025 + i); // 2025 to 2030
-
-            startYearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
-            endYearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
-            startMonthSelect.innerHTML = MONTH_NAMES.map((m, i) => `<option value="${i}">${m}</option>`).join('');
-            endMonthSelect.innerHTML = MONTH_NAMES.map((m, i) => `<option value="${i}">${m}</option>`).join('');
-            
-            const defaultYear = new Date().getFullYear();
-            startYearSelect.value = years.includes(defaultYear) ? defaultYear : 2025;
-            startMonthSelect.value = 0; // Ocak
-            endYearSelect.value = years.includes(defaultYear) ? defaultYear : 2025;
-            endYearSelect.value = state.currentMonth;
-        }
-
-        function generateAndRenderReport() {
-            document.querySelectorAll('.report-tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === state.selectedReportTab));
-            document.querySelectorAll('#report-results-container > div').forEach(view => view.classList.add('hidden'));
-
-            const startMonth = parseInt(document.getElementById('start-month-select').value);
-            const startYear = parseInt(document.getElementById('start-year-select').value);
-            const endMonth = parseInt(document.getElementById('end-month-select').value);
-            const endYear = parseInt(document.getElementById('end-year-select').value);
-            const startDate = new Date(startYear, startMonth, 1);
-            const endDate = new Date(endYear, endMonth, 1);
-            
-            if (startDate > endDate) {
-                document.getElementById('report-schedule-view').innerHTML = '<p class="text-center text-red-500 font-semibold">Başlangıç tarihi, bitiş tarihinden sonra olamaz.</p>';
-                 document.getElementById('report-schedule-view').classList.remove('hidden');
-                return;
-            }
-
-            if (state.selectedReportTab === 'schedule') {
-                document.getElementById('report-schedule-view').classList.remove('hidden');
-                renderReportScheduleTable(startDate, endDate);
-            } else if (state.selectedReportTab === 'visit') {
-                document.getElementById('report-visit-view').classList.remove('hidden');
-                renderReportVisitTable(startDate, endDate);
-            } else if (state.selectedReportTab === 'deploy') {
-                document.getElementById('report-deploy-view').classList.remove('hidden');
-                renderReportDeployTable(startDate, endDate);
-            }
-        }
-
-        function renderReportScheduleTable(startDate, endDate) {
-            const people = getPeople();
-            const reportStats = {};
-            people.forEach(p => {
-                reportStats[p.id] = { name: p.name, order: p.order, office: 0, home: 0, leave: 0, workDays: 0, oncall: 0, deploy: 0 };
-            });
-
-            const dataSource = state.currentUser.role === 'admin' ? { ...state.data.publishedSchedules, ...state.data.draftSchedules } : state.data.publishedSchedules;
-
-            for (let y = startDate.getFullYear(); y <= endDate.getFullYear(); y++) {
-                const mStart = (y === startDate.getFullYear()) ? startDate.getMonth() : 0;
-                const mEnd = (y === endDate.getFullYear()) ? endDate.getMonth() : 11;
-                for (let m = mStart; m <= mEnd; m++) {
-                    let monthData;
-                     if (state.currentUser.role === 'admin') {
-                         monthData = state.data.draftSchedules?.[y]?.[m] || state.data.publishedSchedules?.[y]?.[m] || {};
-                    } else {
-                         monthData = state.data.publishedSchedules?.[y]?.[m] || {};
-                    }
-                    const daysInMonth = new Date(y, m + 1, 0).getDate();
-
-                    for (let d = 1; d <= daysInMonth; d++) {
-                        if (new Date(y, m, d).getDay() % 6 === 0) continue;
-                        
-                        const dayData = monthData[d] || {};
-                        people.forEach(person => {
-                             if (!getActivePeopleForDate(y, m, d).some(p => p.id === person.id)) return;
-                             const personStatus = dayData[person.id]?.status;
-                             if(OFFICE_LIKE_STATUSES.includes(personStatus)) { reportStats[person.id].office++; reportStats[person.id].workDays++; }
-                             else if(HOME_LIKE_STATUSES.includes(personStatus)) { reportStats[person.id].home++; reportStats[person.id].workDays++; }
-                             else if(LEAVE_STATUSES.includes(personStatus)) { reportStats[person.id].leave++; }
-                             
-                             if (dayData.oncall?.personId === person.id) reportStats[person.id].oncall++;
-                             if (dayData.deploy?.personId === person.id) reportStats[person.id].deploy++;
-                        });
-                    }
-                }
-            }
-            
-            let html = `<table class="w-full text-sm report-table">
-                            <thead><tr><th>Kişi</th><th>Ofis</th><th>Ev</th><th>Ofis %</th><th>İzin</th><th>Nöbet</th><th>Deploy</th></tr></thead>
-                            <tbody>`;
-            Object.values(reportStats).sort((a,b) => a.order - b.order).forEach(stats => {
-                const officeRatio = stats.workDays > 0 ? Math.round((stats.office / stats.workDays) * 100) : 0;
-                html += `<tr>
-                            <td class="p-2 border text-left font-semibold">${stats.name}</td>
-                            <td class="p-2 border">${stats.office}</td>
-                            <td class="p-2 border">${stats.home}</td>
-                            <td class="p-2 border font-bold">${officeRatio}%</td>
-                            <td class="p-2 border">${stats.leave}</td>
-                            <td class="p-2 border">${stats.oncall}</td>
-                            <td class="p-2 border">${stats.deploy}</td>
-                         </tr>`;
-            });
-            html += `</tbody></table>`;
-            document.getElementById('report-schedule-view').innerHTML = html;
-        }
-
-        function renderReportVisitTable(startDate, endDate) {
-             const allVisits = state.data.branchVisits || [];
-             const people = getPeople();
-             const endOfMonth = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
-
-            const reportVisits = allVisits.filter(v => {
-                if (!v.date) return false;
-                const visitDate = new Date(v.date);
-                return visitDate >= startDate && visitDate <= endOfMonth;
-            }).sort((a,b) => new Date(a.date) - new Date(b.date));
-            
-            let html = '';
-            if(reportVisits.length > 0) {
-                 html += `<table class="w-full text-sm report-table">
-                                <thead><tr><th>Tarih</th><th>Kişi</th><th>Tip</th><th>Şube Adı</th></tr></thead>
-                                <tbody>`;
-                reportVisits.forEach(visit => {
-                    const person = people.find(p => p.id === visit.personId);
-                    const date = new Date(visit.date);
-                    html += `<tr>
-                                <td class="p-2 border">${date.toLocaleDateString('tr-TR')}</td>
-                                <td class="p-2 border">${person?.name || ''}</td>
-                                <td class="p-2 border">${visit.type || ''}</td>
-                                <td class="p-2 border text-left">${visit.name || ''}</td>
-                            </tr>`;
-                });
-                html += `</tbody></table>`;
-            } else {
-                html += '<p class="text-center p-4 text-gray-500">Seçilen aralıkta şube ziyareti bulunamadı.</p>';
-            }
-            document.getElementById('report-visit-view').innerHTML = html;
-        }
-
-        function renderReportDeployTable(startDate, endDate) {
-            const people = getPeople(false);
-            const deployData = state.data.deployData || [];
-            const endOfMonth = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
-            let allDeployEvents = [];
-            const dataSource = state.currentUser.role === 'admin' ? { ...state.data.publishedSchedules, ...state.data.draftSchedules } : state.data.publishedSchedules;
-
-            for (let y = startDate.getFullYear(); y <= endDate.getFullYear(); y++) {
-                const mStart = (y === startDate.getFullYear()) ? startDate.getMonth() : 0;
-                const mEnd = (y === endDate.getFullYear()) ? endDate.getMonth() : 11;
-
-                for (let m = mStart; m <= mEnd; m++) {
-                    let monthData;
-                     if (state.currentUser.role === 'admin') {
-                         monthData = state.data.draftSchedules?.[y]?.[m] || state.data.publishedSchedules?.[y]?.[m] || {};
-                    } else {
-                         monthData = state.data.publishedSchedules?.[y]?.[m] || {};
-                    }
-                    const daysInMonth = new Date(y, m + 1, 0).getDate();
-
-                    for (let d = 1; d <= daysInMonth; d++) {
-                        const eventDate = new Date(y, m, d);
-                        if (eventDate < startDate || eventDate > endOfMonth) continue;
-
-                        const deployPersonId = monthData[d]?.deploy?.personId;
-                        const person = people.find(p => p.id === deployPersonId);
-                        if(person) {
-                            const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                            let eventData = deployData.find(d => d.date === dateStr) || { name: '(Belirtilmemiş)' };
-                            allDeployEvents.push({ date: eventDate, person: person.name, name: eventData.name });
-                        }
-                    }
-                }
-            }
-
-            allDeployEvents.sort((a,b) => a.date - b.date);
-            
-            let html = '';
-            if (allDeployEvents.length > 0) {
-                html = `<table class="w-full text-sm report-table">
-                            <thead><tr><th>Tarih</th><th>Kişi</th><th>Açıklama</th></tr></thead>
-                            <tbody>`;
-                allDeployEvents.forEach(event => {
-                     html += `<tr>
-                        <td class="p-2 border">${event.date.toLocaleDateString('tr-TR')}</td>
-                        <td class="p-2 border">${event.person}</td>
-                        <td class="p-2 border text-left">${event.name}</td>
-                    </tr>`;
-                });
-                html += '</tbody></table>';
-            } else {
-                html = '<p class="text-center p-4 text-gray-500">Seçilen aralıkta deploy kaydı bulunamadı.</p>';
-            }
-             document.getElementById('report-deploy-view').innerHTML = html;
-        }
-
-        function exportScheduleToExcel() {
-            const { currentYear, currentMonth } = state;
-            const monthName = MONTH_NAMES[currentMonth];
-            const fileName = `Cizelge_${monthName}_${currentYear}.xlsx`;
-            const table = document.getElementById('schedule-table');
-            if (!table) return;
-
-            const tableClone = table.cloneNode(true);
-            const rows = tableClone.querySelectorAll('tr');
-            rows.forEach(row => {
-                if (row.cells.length > 2 && !row.querySelector('[colspan="2"]')) {
-                    row.deleteCell(-1);
-                    row.deleteCell(-1);
-                }
-            });
-
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.table_to_sheet(tableClone);
-            
-            const cols = [];
-            const header = Array.from(tableClone.querySelectorAll('thead th'));
-            cols.push({ wch: 20 }); 
-            for(let i = 1; i < header.length; i++) {
-                cols.push({ wch: 5 }); 
-            }
-            ws['!cols'] = cols;
-            
-            XLSX.utils.book_append_sheet(wb, ws, `${monthName} ${currentYear}`);
-            XLSX.writeFile(wb, fileName);
-        }
-
-        function exportSummaryToExcel() {
-            const { selectedReportTab } = state;
-            let table;
-            let fileName = "Ozet_Raporu.xlsx";
-
-            if (selectedReportTab === 'schedule') {
-                table = document.querySelector('#report-schedule-view .report-table');
-                fileName = "Ozet_Cizelge_Raporu.xlsx";
-            } else if (selectedReportTab === 'visit') {
-                table = document.querySelector('#report-visit-view .report-table');
-                fileName = "Ozet_Ziyaret_Raporu.xlsx";
-            } else if (selectedReportTab === 'deploy') {
-                table = document.querySelector('#report-deploy-view .report-table');
-                fileName = "Ozet_Deploy_Raporu.xlsx";
-            }
-
-            if (!table) {
-                showInfoModal("Hata", "Dışa aktarılacak veri bulunamadı.");
-                return;
-            }
-
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.table_to_sheet(table);
-
-            const objectMaxLength = [];
-            const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
-            data.forEach((row) => {
-                Object.keys(row).forEach((key) => {
-                    const len = row[key] ? String(row[key]).length : 0;
-                    if (!objectMaxLength[key] || objectMaxLength[key] < len) {
-                        objectMaxLength[key] = len;
-                    }
-                });
-            });
-            ws['!cols'] = objectMaxLength.map(w => ({ wch: w + 2 }));
-
-            XLSX.utils.book_append_sheet(wb, ws, "Rapor");
-            XLSX.writeFile(wb, fileName);
-        }
-        
         // --- INITIALIZATION ---
-        
         function initializeAppLogic() {
             if (appInitialized) return;
             appInitialized = true;
-            console.log("Initializing App Logic (listeners, UI)...");
-            
+
+            Object.assign(window.ScheduleApp, {
+                state: state,
+                config: config,
+                STATUSES: STATUSES,
+                WORK_LIKE_STATUSES: WORK_LIKE_STATUSES,
+                OFFICE_LIKE_STATUSES: OFFICE_LIKE_STATUSES,
+                HOME_LIKE_STATUSES: HOME_LIKE_STATUSES,
+                LEAVE_STATUSES: LEAVE_STATUSES,
+                REQUEST_STATUSES: REQUEST_STATUSES,
+                MONTH_NAMES: MONTH_NAMES,
+                DAY_NAMES: DAY_NAMES,
+                utils: {
+                    getPeople,
+                    getActivePeopleForDate,
+                    deepCopy,
+                    showInfoModal,
+                    showConfirmModal,
+                    showNoteModal,
+                    showModal,
+                    saveDataToFirestore,
+                    formatSummaryDate,
+                    calculatePersonMonthStats,
+                    calculatePersonYearStats,
+                    getStatusOnDate,
+                    updateData
+                }
+            });
+
             setupEventListeners();
-            populateReportDateFilters();
+            
+            ['summary', 'calendar', 'settings'].forEach(modName => {
+                const mod = window.ScheduleApp.modules[modName];
+                if (mod && !mod.missing && typeof mod.init === 'function') {
+                    mod.init();
+                }
+            });
+
             loadDataFromFirestore();
         }
 
         async function initFirebase() {
-             if (!firebaseConfig.apiKey) {
-                console.error("Firebase config is missing or invalid. App will not connect to Firebase.");
-                showInfoModal("Yapılandırma Hatası", "Firebase bağlantı bilgileri eksik. Lütfen dosyayı güncelleyin.");
-                return; 
-            }
-
             try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                docRef = doc(db, "scheduleData/main"); // Using a simpler, static path
+                docRef = doc(db, "scheduleData/main");
 
                 onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        console.log("Firebase Auth successful for user:", user.uid);
-                        initializeAppLogic();
-                    } else {
-                        console.log("Firebase user signed out.");
-                        // Handle sign-out state if necessary
-                    }
+                    if (user) initializeAppLogic();
                 });
-
                 await signInAnonymously(auth);
-
             } catch (error) {
-                console.error("Firebase initialization error:", error);
-                showInfoModal("Bağlantı Hatası", "Firebase ile bağlantı kurulamadı. Lütfen internet bağlantınızı kontrol edin ve sayfayı yenileyin.");
+                console.error("Firebase Init Error:", error);
+                showInfoModal("Bağlantı Hatası", "Firebase ile bağlantı kurulamadı.");
             }
         }
 
         initFirebase();
-
     </script>
+    
+    <script src="ozet.js" onerror="markModuleMissing('summary')"></script>
+    <script src="takvim.js" onerror="markModuleMissing('calendar')"></script>
+    <script src="ayarlar.js" onerror="markModuleMissing('settings')"></script>
+
 </body>
 </html>
-
-
